@@ -15,6 +15,14 @@
   with hand computation through the Voigt route, which shares no code with the
   tensor formulation the implementation uses.
 
+- Consistent nodal loads for a body force, and end-to-end verification against
+  analytical oracles: a manufactured solution recovering second-order
+  convergence, Lame's thick-walled cylinder, cantilever tip deflection against
+  beam theory, and the strain-energy-equals-external-work identity. The
+  accuracy and identity oracles run at `f32` as well as `f64`; the
+  convergence-rate studies stay at `f64`, because `f32` reaches its precision
+  floor before the study leaves the asymptotic regime.
+
 ### Changed
 
 - The repository is a workspace: `crates/ares` (`ares-solid`) is the `no_std`,

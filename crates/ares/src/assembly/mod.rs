@@ -6,6 +6,7 @@
 //! nothing downstream reads one.
 
 mod action;
+mod body;
 mod constrained;
 mod mesh;
 
