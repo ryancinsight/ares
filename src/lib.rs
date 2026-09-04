@@ -26,3 +26,8 @@
 #![deny(missing_docs)]
 
 extern crate alloc;
+
+/// Deformation measures derived from a displacement field.
+pub mod kinematics;
+
+pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};

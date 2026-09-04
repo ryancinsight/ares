@@ -423,12 +423,32 @@ dependencies = [
 ]
 
 [[patch.unused]]
-name = "iris-viz"
-version = "0.1.0"
+name = "moirai-async"
+version = "0.5.0"
 
 [[patch.unused]]
-name = "themis-topology"
-version = "0.10.1"
+name = "moirai-core"
+version = "0.5.0"
+
+[[patch.unused]]
+name = "moirai-executor"
+version = "0.5.0"
+
+[[patch.unused]]
+name = "moirai-gpu"
+version = "0.5.0"
+
+[[patch.unused]]
+name = "moirai-parallel"
+version = "0.5.0"
+
+[[patch.unused]]
+name = "moirai-runtime"
+version = "0.5.0"
+
+[[patch.unused]]
+name = "moirai-sync"
+version = "0.5.0"
 
 [[patch.unused]]
 name = "consus-compression"
@@ -459,14 +479,6 @@ name = "consus-zarr"
 version = "0.1.0"
 
 [[patch.unused]]
-name = "leto"
-version = "0.43.0"
-
-[[patch.unused]]
-name = "leto-ops"
-version = "0.43.0"
-
-[[patch.unused]]
 name = "coeus-autograd"
 version = "0.10.0"
 
@@ -495,44 +507,12 @@ name = "coeus-tensor"
 version = "0.10.0"
 
 [[patch.unused]]
-name = "horae"
+name = "themis-topology"
+version = "0.10.1"
+
+[[patch.unused]]
+name = "hyperion"
 version = "0.1.0"
-
-[[patch.unused]]
-name = "moirai-async"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-core"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-executor"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-gpu"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-parallel"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-runtime"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "moirai-sync"
-version = "0.5.0"
-
-[[patch.unused]]
-name = "tyche-core"
-version = "0.2.0"
-
-[[patch.unused]]
-name = "melinoe"
-version = "0.9.0"
 
 [[patch.unused]]
 name = "mnemosyne-arena"
@@ -555,12 +535,8 @@ name = "mnemosyne-memory-core"
 version = "0.2.0"
 
 [[patch.unused]]
-name = "hyperion"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "gaia-mesh"
-version = "0.5.0"
+name = "hermes-simd"
+version = "0.7.0"
 
 [[patch.unused]]
 name = "asclepius"
@@ -571,48 +547,20 @@ name = "asclepius-coeus"
 version = "0.1.0"
 
 [[patch.unused]]
-name = "hephaestus-core"
-version = "0.19.0"
+name = "harmonia"
+version = "0.1.0"
 
 [[patch.unused]]
-name = "hephaestus-cuda"
-version = "0.19.0"
+name = "horae"
+version = "0.1.0"
 
 [[patch.unused]]
-name = "hephaestus-metal"
-version = "0.19.0"
+name = "gaia-mesh"
+version = "0.5.0"
 
 [[patch.unused]]
-name = "hephaestus-rocm"
-version = "0.19.0"
-
-[[patch.unused]]
-name = "hephaestus-wgpu"
-version = "0.19.0"
-
-[[patch.unused]]
-name = "apollo-fft"
-version = "0.27.0"
-
-[[patch.unused]]
-name = "apollo-nufft"
-version = "0.7.0"
-
-[[patch.unused]]
-name = "apollo-sht"
-version = "0.7.0"
-
-[[patch.unused]]
-name = "hermes-simd"
-version = "0.7.0"
-
-[[patch.unused]]
-name = "athena-core"
-version = "0.1.1"
-
-[[patch.unused]]
-name = "athena-leto"
-version = "0.1.1"
+name = "tyche-core"
+version = "0.2.0"
 
 [[patch.unused]]
 name = "ritk-block-matching"
@@ -647,5 +595,57 @@ name = "ritk-vtk"
 version = "0.2.0"
 
 [[patch.unused]]
-name = "harmonia"
+name = "athena-core"
+version = "0.1.1"
+
+[[patch.unused]]
+name = "athena-leto"
+version = "0.1.1"
+
+[[patch.unused]]
+name = "iris-viz"
 version = "0.1.0"
+
+[[patch.unused]]
+name = "apollo-fft"
+version = "0.27.0"
+
+[[patch.unused]]
+name = "apollo-nufft"
+version = "0.7.0"
+
+[[patch.unused]]
+name = "apollo-sht"
+version = "0.7.0"
+
+[[patch.unused]]
+name = "hephaestus-core"
+version = "0.19.0"
+
+[[patch.unused]]
+name = "hephaestus-cuda"
+version = "0.19.0"
+
+[[patch.unused]]
+name = "hephaestus-metal"
+version = "0.19.0"
+
+[[patch.unused]]
+name = "hephaestus-rocm"
+version = "0.19.0"
+
+[[patch.unused]]
+name = "hephaestus-wgpu"
+version = "0.19.0"
+
+[[patch.unused]]
+name = "leto"
+version = "0.43.0"
+
+[[patch.unused]]
+name = "leto-ops"
+version = "0.43.0"
+
+[[patch.unused]]
+name = "melinoe"
+version = "0.9.0"

@@ -50,12 +50,20 @@ print_stdout = "deny"
 print_stderr = "deny"
 dbg_macro = "deny"
 
-# --- Trust-boundary floor ---
-# Assembly indexes element and node arrays continuously. An unchecked index or
-# a silent overflow there produces a plausible wrong stiffness matrix, which no
-# downstream oracle distinguishes from a modelling error.
-indexing_slicing = "deny"
-arithmetic_side_effects = "deny"
+# --- Not denied here, and why ---
+# `indexing_slicing` and `arithmetic_side_effects` were denied crate-wide in
+# the scaffold commit. That was wrong: those are trust-boundary and parser
+# lints, and this is a compute kernel. They fired on `ONE + ONE` for a generic
+# float, which cannot wrap or panic, and on `a[i][j]` into a `[[T; D]; D]`
+# whose bounds are fixed by the const generic and proven by the iterator that
+# produced the index.
+#
+# The concern that motivated them is real - a wrong index in assembly yields a
+# plausible wrong stiffness matrix - but the mitigation is structural, not a
+# lint: bounds are elided by iterating rather than indexing wherever the access
+# is data-driven, and the patch test catches an assembly that indexes wrongly.
+# A module that ever parses untrusted input carries these as a module-scoped
+# `deny` instead.
 
 [profile.dev]
 debug = "line-tables-only"
