@@ -1,0 +1,19 @@
+[book]
+title = "ares: Solid Momentum Balance for Atlas"
+authors = ["Ryan Clanton"]
+src = "."
+language = "en"
+
+[build]
+build-dir = "../../target/book/ares"
+create-missing = false
+
+[output.html]
+no-section-label = false
+mathjax-support = false
+site-url = "/ares/"
+git-repository-url = "https://github.com/ryancinsight/ares"
+default-theme = "rust"
+
+[rust]
+edition = "2024"

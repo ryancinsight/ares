@@ -25,6 +25,15 @@ by atlas ADR 0057. Plasticity, finite deformation, contact, dynamics,
 fracture, fatigue, and anisotropy are later phases, and none is scaffolded — a
 module for a capability that does not exist is a placeholder.
 
+## The book
+
+[`docs/book`](docs/book) teaches continuum solid mechanics and this crate
+together, from measuring deformation through to the coupling interface. It
+assumes Rust and some calculus and nothing about the finite element method.
+Chapter 10 is the verification chapter, and it is the one to read if you read
+only one: it says what each oracle catches, what it is blind to, and where an
+oracle falsified a claim its own author had written down.
+
 ## Verification
 
 Analytical oracles throughout; there is no reference implementation to
