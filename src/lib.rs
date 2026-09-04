@@ -27,6 +27,8 @@
 
 /// Global assembly of the stiffness action over a mesh.
 pub mod assembly;
+/// Dirichlet and Neumann conditions that close the balance.
+pub mod boundary;
 /// Constitutive coupling between strain and stress.
 pub mod constitutive;
 /// Linear simplex elements and their stiffness action.
@@ -35,6 +37,10 @@ pub mod element;
 pub mod kinematics;
 
 pub use assembly::{InvalidMesh, MisshapedField, SimplexMesh};
+pub use boundary::{
+    DirichletConditions, InvalidBoundary, InvalidConditions, MisshapedLoad, PrescribedDisplacement,
+    TractionBoundary, TractionFacet,
+};
 pub use constitutive::{CauchyStress, isotropic_hooke};
 pub use element::{DegenerateElement, Simplex, stiffness_action};
 pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};

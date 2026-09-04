@@ -6,6 +6,7 @@
 //! nothing downstream reads one.
 
 mod action;
+mod constrained;
 mod mesh;
 
 pub use action::MisshapedField;

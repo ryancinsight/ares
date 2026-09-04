@@ -8,5 +8,6 @@ mod gradient;
 mod simplex;
 mod stiffness;
 
+pub(crate) use simplex::leading_determinant;
 pub use simplex::{DegenerateElement, Simplex};
 pub use stiffness::stiffness_action;

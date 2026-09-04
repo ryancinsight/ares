@@ -167,6 +167,20 @@ pub enum MisshapedField {
         /// Length supplied.
         found: usize,
     },
+    /// The applied-load field is the wrong length.
+    Load {
+        /// Degrees of freedom the mesh has.
+        expected: usize,
+        /// Length supplied.
+        found: usize,
+    },
+    /// The scratch buffer is the wrong length.
+    Scratch {
+        /// Degrees of freedom the mesh has.
+        expected: usize,
+        /// Length supplied.
+        found: usize,
+    },
 }
 
 impl core::fmt::Display for MisshapedField {
@@ -174,6 +188,8 @@ impl core::fmt::Display for MisshapedField {
         let (role, expected, found) = match self {
             Self::Displacement { expected, found } => ("displacement", expected, found),
             Self::Force { expected, found } => ("force", expected, found),
+            Self::Load { expected, found } => ("applied load", expected, found),
+            Self::Scratch { expected, found } => ("scratch", expected, found),
         };
         write!(
             formatter,

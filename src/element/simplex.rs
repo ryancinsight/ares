@@ -148,12 +148,25 @@ impl<'nodes, T: RealField, const D: usize, const N: usize> Simplex<'nodes, T, D,
 
 /// Determinant of a small square matrix by Gaussian elimination.
 fn determinant<T: RealField, const D: usize>(matrix: &[[T; D]; D]) -> T {
+    leading_determinant(matrix, D)
+}
+
+/// Determinant of the leading `size` by `size` block of a matrix.
+///
+/// The general form, because a facet's Gram matrix is `(D - 1)` square inside
+/// a `D`-square buffer — stable Rust cannot spell `D - 1` as an array length,
+/// and a second elimination routine for the smaller block would be the same
+/// algorithm twice.
+pub(crate) fn leading_determinant<T: RealField, const D: usize>(
+    matrix: &[[T; D]; D],
+    size: usize,
+) -> T {
     let mut work = *matrix;
     let mut result = <T as NumericElement>::ONE;
 
-    for pivot in 0..D {
+    for pivot in 0..size {
         let mut best = pivot;
-        for row in (pivot + 1)..D {
+        for row in (pivot + 1)..size {
             if work[row][pivot].abs() > work[best][pivot].abs() {
                 best = row;
             }
@@ -170,9 +183,9 @@ fn determinant<T: RealField, const D: usize>(matrix: &[[T; D]; D]) -> T {
         // rather than indexed; `D` is the spatial dimension, so this is a
         // two- or three-element copy.
         let pivot_row = work[pivot];
-        for row in work.iter_mut().skip(pivot + 1) {
+        for row in work.iter_mut().take(size).skip(pivot + 1) {
             let factor = row[pivot] / pivot_row[pivot];
-            for (column, target) in row.iter_mut().enumerate().skip(pivot) {
+            for (column, target) in row.iter_mut().enumerate().take(size).skip(pivot) {
                 *target -= factor * pivot_row[column];
             }
         }
