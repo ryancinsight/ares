@@ -1,0 +1,13 @@
+# Ordinary native tests are slow at 30 seconds and terminate at 60 seconds.
+# A slow test is a performance defect in the system under test, never a reason
+# to raise the bound (atlas AGENTS.md `engineering_gates: test budgets`).
+[profile.default]
+slow-timeout = { period = "30s", terminate-after = 2 }
+retries = 0
+
+# CI runs to completion so one run surfaces every failure inside the two-run
+# per-item budget.
+[profile.ci]
+slow-timeout = { period = "30s", terminate-after = 2 }
+retries = 0
+fail-fast = false

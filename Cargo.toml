@@ -1,0 +1,71 @@
+[package]
+# Registry name only. The crates.io name `ares` belongs to an unrelated
+# third-party crate, so this publishes as `ares-solid` while the library keeps
+# its `ares` module path — the convention `proteus-mat` and `gaia-mesh` follow.
+name = "ares-solid"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
+description = "Solid momentum balance: kinematics, stress, equilibrium, and boundary conditions"
+repository = "https://github.com/ryancinsight/ares"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["solid-mechanics", "elasticity", "finite-element", "multiphysics"]
+categories = ["science", "simulation"]
+publish = true
+
+[lib]
+# Import path stays `ares` regardless of the registry name above.
+name = "ares"
+path = "src/lib.rs"
+
+[dependencies]
+aequitas = { version = "0.2.0", git = "https://github.com/ryancinsight/aequitas", default-features = false }
+eunomia = { version = "0.8.0", git = "https://github.com/ryancinsight/eunomia", default-features = false }
+proteus = { package = "proteus-mat", version = "0.1.0", git = "https://github.com/ryancinsight/proteus", default-features = false }
+
+[dev-dependencies]
+proptest = "1.11.0"
+
+[features]
+default = ["std"]
+std = ["aequitas/std", "eunomia/std", "proteus/std"]
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+
+# Pedantic floor from the first commit: the crate starts pedantic-clean, so
+# there is no allow-list and no ratchet. A new hit is fixed, never allowed.
+
+# --- Restriction floor ---
+# Solid mechanics is input-dependent throughout, so a panicking path is a
+# defect rather than an inconvenience. Library output belongs to the caller.
+unwrap_used = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+dbg_macro = "deny"
+
+# --- Trust-boundary floor ---
+# Assembly indexes element and node arrays continuously. An unchecked index or
+# a silent overflow there produces a plausible wrong stiffness matrix, which no
+# downstream oracle distinguishes from a modelling error.
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.dev.build-override]
+debug = false
+
+[profile.release]
+debug = false
+strip = "symbols"
