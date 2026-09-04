@@ -394,3 +394,170 @@ proptest::proptest! {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Hand-computed element stiffness
+// ---------------------------------------------------------------------------
+
+/// Lame parameters from the engineering pair.
+fn lame(young: f64, poisson: f64) -> (f64, f64) {
+    (
+        young * poisson / ((1.0 + poisson) * (1.0 - 2.0 * poisson)),
+        young / (2.0 * (1.0 + poisson)),
+    )
+}
+
+/// The stiffness column the action produces for a unit displacement at
+/// `(node, component)`.
+fn stiffness_column<const D: usize, const N: usize>(
+    nodes: &[[f64; D]; N],
+    young: f64,
+    poisson: f64,
+    node: usize,
+    component: usize,
+) -> [[f64; D]; N] {
+    let mut displacements = [[0.0_f64; D]; N];
+    displacements[node][component] = 1.0;
+    let mut forces = [[0.0_f64; D]; N];
+    stiffness_action(
+        &Simplex::new(nodes),
+        &moduli::<f64>(young, poisson),
+        &displacements,
+        &mut forces,
+    )
+    .expect("valid element");
+    forces
+}
+
+fn assert_column(actual: &[[f64; 2]; 3], expected: &[[f64; 2]; 3], label: &str) {
+    for (node, (got, want)) in actual.iter().zip(expected.iter()).enumerate() {
+        for component in 0..2 {
+            let tolerance = want[component].abs().max(1.0) * f64::EPSILON * 16.0;
+            assert!(
+                (got[component] - want[component]).abs() <= tolerance,
+                "{label}: node {node} component {component} is {} but hand computation gives {}",
+                got[component],
+                want[component]
+            );
+        }
+    }
+}
+
+#[test]
+fn the_unit_triangle_matches_its_hand_computed_stiffness_columns() {
+    // Derived independently of the implementation. The reference route is the
+    // textbook Voigt one — `K = A B^T D B` with
+    //
+    //   B rows  [-1, 0, 1, 0, 0, 0]        (eps_xx)
+    //           [ 0,-1, 0, 0, 0, 1]        (eps_yy)
+    //           [-1,-1, 0, 1, 1, 0]        (gamma_xy, the engineering shear)
+    //   D       [[l+2m, l, 0], [l, l+2m, 0], [0, 0, m]]
+    //   A       1/2
+    //
+    // while the implementation goes through the full tensor and never forms a
+    // `B`. Agreement across those two routes is what makes this an oracle
+    // rather than a restatement: the engineering-shear factor of two that
+    // separates `gamma_xy` from `eps_xy` is present in the reference and
+    // absent from the implementation, so a version that confused them would
+    // disagree here.
+    let (young, poisson) = (200e9, 0.3);
+    let (l, m) = lame(young, poisson);
+    let nodes = unit_triangle();
+    let half = 0.5;
+
+    // Column for u_0x: A * [l+3m, l+m, -(l+2m), -m, -m, -l].
+    assert_column(
+        &stiffness_column(&nodes, young, poisson, 0, 0),
+        &[
+            [half * (l + 3.0 * m), half * (l + m)],
+            [half * -(l + 2.0 * m), half * -m],
+            [half * -m, half * -l],
+        ],
+        "column u_0x",
+    );
+
+    // Column for u_0y: A * [l+m, l+3m, -l, -m, -m, -(l+2m)].
+    assert_column(
+        &stiffness_column(&nodes, young, poisson, 0, 1),
+        &[
+            [half * (l + m), half * (l + 3.0 * m)],
+            [half * -l, half * -m],
+            [half * -m, half * -(l + 2.0 * m)],
+        ],
+        "column u_0y",
+    );
+
+    // Column for u_1x: A * [-(l+2m), -l, l+2m, 0, 0, l].
+    assert_column(
+        &stiffness_column(&nodes, young, poisson, 1, 0),
+        &[
+            [half * -(l + 2.0 * m), half * -l],
+            [half * (l + 2.0 * m), 0.0],
+            [0.0, half * l],
+        ],
+        "column u_1x",
+    );
+}
+
+#[test]
+fn the_unit_tetrahedron_matches_its_hand_computed_stiffness_column() {
+    // The same derivation in 3-D for u_1x. With grad N_1 = (1,0,0) the
+    // displacement gradient is a single unit entry, so
+    //   eps = diag(1,0,0), tr = 1, sigma = diag(l+2m, l, l)
+    // and f_a = V sigma . grad N_a with V = 1/6.
+    let (young, poisson) = (200e9, 0.3);
+    let (l, m) = lame(young, poisson);
+    let nodes = unit_tetrahedron();
+    let volume = 1.0 / 6.0;
+
+    let actual = stiffness_column(&nodes, young, poisson, 1, 0);
+    let expected = [
+        [volume * -(l + 2.0 * m), volume * -l, volume * -l],
+        [volume * (l + 2.0 * m), 0.0, 0.0],
+        [0.0, volume * l, 0.0],
+        [0.0, 0.0, volume * l],
+    ];
+    for (node, (got, want)) in actual.iter().zip(expected.iter()).enumerate() {
+        for component in 0..3 {
+            let tolerance = want[component].abs().max(1.0) * f64::EPSILON * 16.0;
+            assert!(
+                (got[component] - want[component]).abs() <= tolerance,
+                "node {node} component {component} is {} but hand computation gives {}",
+                got[component],
+                want[component]
+            );
+        }
+    }
+}
+
+#[test]
+fn the_element_stiffness_is_symmetric() {
+    // K = K^T across every column pair, which the three hand-computed columns
+    // above check only where they overlap.
+    let (young, poisson) = (200e9, 0.3);
+    let nodes = [[0.2_f64, 0.1], [1.7, 0.3], [0.4, 2.2]];
+    let mut matrix = [[0.0_f64; 6]; 6];
+    for node in 0..3 {
+        for component in 0..2 {
+            let column = stiffness_column(&nodes, young, poisson, node, component);
+            for (row_node, force) in column.iter().enumerate() {
+                for (row_component, value) in force.iter().enumerate() {
+                    matrix[row_node * 2 + row_component][node * 2 + component] = *value;
+                }
+            }
+        }
+    }
+    let scale = matrix
+        .iter()
+        .flat_map(|row| row.iter())
+        .fold(0.0_f64, |m, v| m.max(v.abs()));
+    for (i, row) in matrix.iter().enumerate() {
+        for (j, value) in row.iter().enumerate() {
+            let transposed = matrix[j][i];
+            assert!(
+                (value - transposed).abs() <= scale * f64::EPSILON * 16.0,
+                "K[{i}][{j}] = {value} but K[{j}][{i}] = {transposed}"
+            );
+        }
+    }
+}
