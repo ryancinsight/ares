@@ -1,0 +1,30 @@
+[package]
+name = "ares-harmonia"
+description = "Harmonia coupling partition for the Ares solid momentum balance"
+readme = "README.md"
+keywords = ["solid-mechanics", "multiphysics", "coupling", "fsi"]
+categories = ["science", "simulation"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+ares.workspace = true
+ares-athena.workspace = true
+athena-core.workspace = true
+athena-leto.workspace = true
+eunomia.workspace = true
+harmonia.workspace = true
+leto.workspace = true
+leto-ops.workspace = true
+
+[dev-dependencies]
+aequitas.workspace = true
+proteus.workspace = true
+
+[lints]
+workspace = true

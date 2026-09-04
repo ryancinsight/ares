@@ -50,6 +50,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ares-harmonia"
+version = "0.1.0"
+dependencies = [
+ "aequitas",
+ "ares-athena",
+ "ares-solid",
+ "athena-core",
+ "athena-leto",
+ "eunomia",
+ "harmonia",
+ "leto",
+ "leto-ops",
+ "proteus-mat",
+]
+
+[[package]]
 name = "ares-solid"
 version = "0.1.0"
 dependencies = [
@@ -380,6 +396,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e629b9b98ef3dd8afe6ca2bd0f89306cec16d43d907889945bc5d6687f2f13c7"
 
 [[package]]
+name = "harmonia"
+version = "0.1.0"
+source = "git+https://github.com/ryancinsight/harmonia#ba37d133507946bf47f4b47dc9345c5d50c50f6f"
+dependencies = [
+ "aequitas",
+ "athena-core",
+ "eunomia",
+ "horae",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -388,7 +415,7 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 [[package]]
 name = "hermes-simd"
 version = "0.7.0"
-source = "git+https://github.com/ryancinsight/hermes.git#664087bccf8ef404e1cd10d56186c7f3b606b488"
+source = "git+https://github.com/ryancinsight/hermes.git#e6e08211171f2f3784a444046797c00fefd93f08"
 dependencies = [
  "eunomia",
  "hermes-simd-core",
@@ -402,7 +429,7 @@ dependencies = [
 [[package]]
 name = "hermes-simd-core"
 version = "0.7.0"
-source = "git+https://github.com/ryancinsight/hermes.git#664087bccf8ef404e1cd10d56186c7f3b606b488"
+source = "git+https://github.com/ryancinsight/hermes.git#e6e08211171f2f3784a444046797c00fefd93f08"
 dependencies = [
  "eunomia",
  "mnemosyne-memory 0.7.0 (git+https://github.com/ryancinsight/Mnemosyne.git?rev=26726d20cb45c88233a83165cf2ec663efee9050)",
@@ -413,7 +440,7 @@ dependencies = [
 [[package]]
 name = "hermes-simd-intrinsics"
 version = "0.7.0"
-source = "git+https://github.com/ryancinsight/hermes.git#664087bccf8ef404e1cd10d56186c7f3b606b488"
+source = "git+https://github.com/ryancinsight/hermes.git#e6e08211171f2f3784a444046797c00fefd93f08"
 dependencies = [
  "eunomia",
  "hermes-simd-core",
@@ -422,7 +449,7 @@ dependencies = [
 [[package]]
 name = "hermes-simd-macros"
 version = "0.7.0"
-source = "git+https://github.com/ryancinsight/hermes.git#664087bccf8ef404e1cd10d56186c7f3b606b488"
+source = "git+https://github.com/ryancinsight/hermes.git#e6e08211171f2f3784a444046797c00fefd93f08"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -432,7 +459,7 @@ dependencies = [
 [[package]]
 name = "hermes-simd-types"
 version = "0.7.0"
-source = "git+https://github.com/ryancinsight/hermes.git#664087bccf8ef404e1cd10d56186c7f3b606b488"
+source = "git+https://github.com/ryancinsight/hermes.git#e6e08211171f2f3784a444046797c00fefd93f08"
 dependencies = [
  "hermes-simd-core",
  "hermes-simd-intrinsics",
@@ -443,6 +470,15 @@ name = "hermit-abi"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
+
+[[package]]
+name = "horae"
+version = "0.1.0"
+source = "git+https://github.com/ryancinsight/horae#47739ae2cd68f1a32f4f705b8da66f1d69f4900d"
+dependencies = [
+ "aequitas",
+ "eunomia",
+]
 
 [[package]]
 name = "indexmap"

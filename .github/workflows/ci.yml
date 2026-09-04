@@ -98,6 +98,15 @@ jobs:
     permissions:
       contents: read
 
+  semver-harmonia:
+    name: SemVer gate (ares-harmonia)
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    with:
+      package: ares-harmonia
+      rust-toolchain: 1.97.0
+    permissions:
+      contents: read
+
   supply-chain:
     timeout-minutes: 15
     runs-on: ubuntu-latest

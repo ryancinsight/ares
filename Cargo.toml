@@ -20,10 +20,12 @@ publish = true
 
 [workspace.dependencies]
 ares = { package = "ares-solid", version = "0.1.0", path = "crates/ares", default-features = false }
+ares-athena = { version = "0.1.0", path = "crates/ares-athena" }
 aequitas = { version = "0.2.0", git = "https://github.com/ryancinsight/aequitas", default-features = false }
 athena-core = { version = "0.1.1", git = "https://github.com/ryancinsight/athena", default-features = false }
 athena-leto = { version = "0.1.1", git = "https://github.com/ryancinsight/athena", default-features = false }
 eunomia = { version = "0.8.0", git = "https://github.com/ryancinsight/eunomia", default-features = false }
+harmonia = { version = "0.1.0", git = "https://github.com/ryancinsight/harmonia", default-features = false }
 leto = { version = "0.43.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
 leto-ops = { version = "0.43.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
 proteus = { package = "proteus-mat", version = "0.1.0", git = "https://github.com/ryancinsight/proteus", default-features = false }
