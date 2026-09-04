@@ -1,57 +1,45 @@
 # Ares
 
 Solid momentum balance for the [Atlas](https://github.com/ryancinsight/atlas)
-stack: kinematics, stress measures, equilibrium, and the boundary conditions
-that close them.
-
-Ares owns no material data. Constitutive closure belongs to
-[Proteus](https://github.com/ryancinsight/proteus) — Proteus closes, Ares
+stack. Ares owns the balance side of solid mechanics — kinematics, stress,
+equilibrium, and the boundary conditions that close them — and no material
+data at all: constitutive closure belongs to
+[Proteus](https://github.com/ryancinsight/proteus). Proteus closes, Ares
 balances (atlas ADR 0055).
 
-## Installation
+## Crates
 
-The crates.io name `ares` belongs to an unrelated third-party crate, so this
-publishes as `ares-solid`. The import path stays `ares` via `[lib] name`, so
-rename the dependency and no `use ares::…` changes:
+| Crate | Registry name | What it is |
+| --- | --- | --- |
+| [`crates/ares`](crates/ares) | `ares-solid` | The domain core. `#![no_std]`, allocation-free, depends only on vocabulary crates. |
+| [`crates/ares-athena`](crates/ares-athena) | `ares-athena` | The Athena linear-operator seam. Links `std` through `leto`. |
 
-```toml
-[dependencies]
-ares = { package = "ares-solid", version = "0.1.0" }
-```
+The split keeps the domain core free of infrastructure — see
+[ADR 0001](docs/adr/0001-athena-seam-as-a-separate-crate.md). Dependencies run
+strictly inward: `ares-athena` depends on `ares`, never the reverse.
 
 ## Scope
 
-Phase 0 is **small-strain linear elastostatics on an unstructured mesh**
-(atlas ADR 0057):
-
-- kinematics — displacement gradient and small-strain tensor;
-- stress — Cauchy stress, invariants, von Mises, principal stresses;
-- constitutive coupling — isotropic Hooke over `proteus::IsotropicModuli`;
-- balance — static equilibrium residual;
-- discretisation — continuous-Galerkin linear simplices on Gaia meshes;
-- boundary conditions — Dirichlet and Neumann as typed conditions;
-- assembly and solve — through Athena, backend-neutral.
-
-Not in Phase 0: plasticity, viscoelasticity, hyperelasticity, finite
-deformation, contact, dynamics, fracture, fatigue, anisotropy, buckling. Each
-is a later phase with its own charter, and none is scaffolded — a module for a
-capability that does not exist is a placeholder.
+Phase 0 is small-strain linear elastostatics on an unstructured mesh, charted
+by atlas ADR 0057. Plasticity, finite deformation, contact, dynamics,
+fracture, fatigue, and anisotropy are later phases, and none is scaffolded — a
+module for a capability that does not exist is a placeholder.
 
 ## Verification
 
-Phase 0 is verified against analytical oracles rather than a reference
-implementation, because none exists to difference against: the FEM patch test
-and rigid-body motion exactly, then the Lamé thick-walled cylinder, cantilever
-tip deflection, a manufactured solution, `O(h^2)` convergence, and strain
-energy against external work. Every oracle runs at `f32` and `f64`.
+Analytical oracles throughout; there is no reference implementation to
+difference against, which is why the oracle breadth is the safety net. The
+headline is the **patch test**: a constant-strain field on an arbitrary
+distorted patch is reproduced to machine precision, in 2-D and 3-D, under pure
+shear and pure dilation, at `f32` and `f64`. Element stiffness columns are
+additionally checked against hand computation through the Voigt `B^T D B`
+route, which shares no code with the tensor formulation the implementation
+uses.
 
-## Substrate
+Oracles are mutation-measured rather than assumed: each records which defects
+it was observed to catch, and where a mutation revealed an overclaim the claim
+was corrected rather than the mutation dismissed.
 
-`aequitas` quantities, `eunomia` scalars, `leto` arrays, `proteus` closure,
-`gaia` mesh, `athena` solve. No `nalgebra`, `ndarray`, `rayon`, or
-`num-traits`: each duplicates a capability the stack owns first-party, and
-`deny.toml` enforces that rather than review.
-
-## License
+## Licence
 
 MIT OR Apache-2.0.

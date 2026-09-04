@@ -1,0 +1,36 @@
+[package]
+# Registry name only. The crates.io name `ares` belongs to an unrelated
+# third-party crate, so this publishes as `ares-solid` while the library keeps
+# its `ares` module path - the convention `proteus-mat` and `gaia-mesh` follow.
+name = "ares-solid"
+description = "Solid momentum balance: kinematics, stress, equilibrium, and boundary conditions"
+readme = "README.md"
+keywords = ["solid-mechanics", "elasticity", "finite-element", "multiphysics"]
+categories = ["science", "simulation"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+# Import path stays `ares` regardless of the registry name above.
+name = "ares"
+path = "src/lib.rs"
+
+[dependencies]
+aequitas.workspace = true
+eunomia.workspace = true
+proteus.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[features]
+default = ["std"]
+std = ["aequitas/std", "eunomia/std", "proteus/std"]
+
+[lints]
+workspace = true

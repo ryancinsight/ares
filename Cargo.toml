@@ -1,45 +1,42 @@
-[package]
-# Registry name only. The crates.io name `ares` belongs to an unrelated
-# third-party crate, so this publishes as `ares-solid` while the library keeps
-# its `ares` module path — the convention `proteus-mat` and `gaia-mesh` follow.
-name = "ares-solid"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+# Why a workspace, per ADR 0001 in this repository: `ares` is `#![no_std]` and
+# depends on nothing but vocabulary crates, while Athena's operator seam is
+# reachable only through `athena-leto`, which links `std`. One crate would have
+# to give up `no_std` - or hide the solver behind a feature, which makes the
+# shipped path the untested one. Two keep the domain core free of
+# infrastructure and the dependency direction inward.
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
-description = "Solid momentum balance: kinematics, stress, equilibrium, and boundary conditions"
-repository = "https://github.com/ryancinsight/ares"
 license = "MIT OR Apache-2.0"
-readme = "README.md"
-keywords = ["solid-mechanics", "elasticity", "finite-element", "multiphysics"]
-categories = ["science", "simulation"]
+repository = "https://github.com/ryancinsight/ares"
 publish = true
 
-[lib]
-# Import path stays `ares` regardless of the registry name above.
-name = "ares"
-path = "src/lib.rs"
-
-[dependencies]
+[workspace.dependencies]
+ares = { package = "ares-solid", version = "0.1.0", path = "crates/ares", default-features = false }
 aequitas = { version = "0.2.0", git = "https://github.com/ryancinsight/aequitas", default-features = false }
+athena-core = { version = "0.1.1", git = "https://github.com/ryancinsight/athena", default-features = false }
+athena-leto = { version = "0.1.1", git = "https://github.com/ryancinsight/athena", default-features = false }
 eunomia = { version = "0.8.0", git = "https://github.com/ryancinsight/eunomia", default-features = false }
+leto = { version = "0.43.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
+leto-ops = { version = "0.43.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
 proteus = { package = "proteus-mat", version = "0.1.0", git = "https://github.com/ryancinsight/proteus", default-features = false }
-
-[dev-dependencies]
 proptest = "1.11.0"
 
-[features]
-default = ["std"]
-std = ["aequitas/std", "eunomia/std", "proteus/std"]
-
-[lints.rust]
+[workspace.lints.rust]
 missing_docs = "deny"
 unsafe_code = "forbid"
 
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }
 
-# Pedantic floor from the first commit: the crate starts pedantic-clean, so
+# Pedantic floor from the first commit: the crates start pedantic-clean, so
 # there is no allow-list and no ratchet. A new hit is fixed, never allowed.
 
 # --- Restriction floor ---
