@@ -12,19 +12,9 @@
     reason = "the closed forms below are evaluated in the same order as the implementation over exactly representable inputs, so equality is exact; the two identities with genuine rounding, the uniaxial round trip and von Mises, carry derived bounds instead."
 )]
 
-use aequitas::systems::si::quantities::{Dimensionless, Pressure};
+use super::support::moduli;
 use ares::{CauchyStress, SmallStrain, SymmetricTensor, isotropic_hooke};
 use eunomia::RealField;
-use proteus::IsotropicModuli;
-
-/// Moduli from an explicit engineering pair, stated by the test.
-fn moduli<T: RealField>(young: f64, poisson: f64) -> IsotropicModuli<T> {
-    IsotropicModuli::from_young_poisson(
-        Pressure::from_base(T::from_f64(young)),
-        Dimensionless::from_base(T::from_f64(poisson)),
-    )
-    .expect("the stated pair is inside the positive-definite domain")
-}
 
 fn uniaxial_strain<T: RealField, const D: usize>(e: f64) -> SmallStrain<T, D> {
     let mut gradient = [[T::from_f64(0.0); D]; D];
@@ -283,7 +273,7 @@ fn the_crate_names_no_material() {
     // module doc legitimately says that a caller wanting steel asks Proteus
     // for it, and a check that flagged its own explanation would be measuring
     // the wrong thing. The first draft of this test did exactly that.
-    let code = strip_comments(include_str!("../src/constitutive/hooke.rs"));
+    let code = strip_comments(include_str!("../../src/constitutive/hooke.rs"));
     for name in ["steel", "aluminium", "aluminum", "titanium", "concrete"] {
         assert!(
             !code.to_lowercase().contains(name),
