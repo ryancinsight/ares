@@ -29,8 +29,11 @@ extern crate alloc;
 
 /// Constitutive coupling between strain and stress.
 pub mod constitutive;
+/// Linear simplex elements and their stiffness action.
+pub mod element;
 /// Deformation measures derived from a displacement field.
 pub mod kinematics;
 
 pub use constitutive::{CauchyStress, isotropic_hooke};
+pub use element::{InvalidElement, Simplex, stiffness_action};
 pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};
