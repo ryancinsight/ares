@@ -1,7 +1,7 @@
 //! Athena's linear-operator seam for the Ares solid momentum balance.
 //!
 //! Ares assembles `f = K u` matrix-free over a mesh; Athena's Krylov solvers
-//! consume a [`LinearOperator`] that answers exactly that question. This crate
+//! consume an [`athena_core::LinearOperator`] that answers exactly that question. This crate
 //! is the join, and it is deliberately thin — it owns no physics, no
 //! discretisation, and no solver policy.
 //!
@@ -20,7 +20,8 @@
 //!
 //! # Why the operator carries no fallible path of its own
 //!
-//! [`LinearOperator::apply`] must return `B::Error`, which for the host
+//! [`LinearOperator::apply`](athena_core::LinearOperator::apply) must return
+//! `B::Error`, which for the host
 //! backend is `LetoBackendError` — a closed, non-exhaustive enum with no
 //! variant for "this element is degenerate". That is not a limitation to work
 //! around but a constraint that shaped the design upstream:
