@@ -22,7 +22,7 @@
 )]
 
 use aequitas::systems::si::quantities::{Dimensionless, Pressure};
-use ares::{Simplex, stiffness_action};
+use ares::{DegenerateElement, Simplex, stiffness_action};
 use eunomia::RealField;
 use proteus::IsotropicModuli;
 
@@ -56,11 +56,11 @@ fn unit_tetrahedron() -> [[f64; 3]; 4] {
 #[test]
 fn unit_simplex_measures_match_their_closed_forms() {
     let nodes = unit_triangle();
-    let triangle = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes in 2-D");
+    let triangle = Simplex::new(&nodes);
     assert_eq!(triangle.signed_measure(), 0.5);
 
     let nodes = unit_tetrahedron();
-    let tetrahedron = Simplex::<f64, 3>::try_new(&nodes).expect("four nodes in 3-D");
+    let tetrahedron = Simplex::new(&nodes);
     assert_eq!(tetrahedron.signed_measure(), 1.0 / 6.0);
 }
 
@@ -69,7 +69,7 @@ fn reversing_node_order_flips_the_sign_of_the_measure() {
     // A negative measure means an inverted element, not a small one. Silently
     // taking the absolute value would hide an inverted mesh.
     let nodes = [[0.0_f64, 0.0], [0.0, 1.0], [1.0, 0.0]];
-    let flipped = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+    let flipped = Simplex::new(&nodes);
     assert_eq!(flipped.signed_measure(), -0.5);
 }
 
@@ -82,11 +82,8 @@ fn shape_gradients_cancel_to_rounding() {
     // — on a geometry that happens to cancel. The bound is what actually
     // holds, and `stiffness_action` does not depend on the stronger claim.
     let nodes = [[0.3_f64, -1.2], [2.7, 0.4], [-0.9, 3.1]];
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
-    let mut gradients = [[0.0_f64; 2]; 3];
-    element
-        .shape_gradients(&mut gradients)
-        .expect("non-degenerate");
+    let element = Simplex::new(&nodes);
+    let gradients = element.shape_gradients().expect("non-degenerate");
 
     for component in 0..2 {
         let total: f64 = gradients.iter().map(|g| g[component]).sum();
@@ -107,11 +104,8 @@ fn shape_gradients_reproduce_a_linear_field() {
     // This is the property that makes constant strain representable, which the
     // patch test then exercises globally.
     let nodes = [[0.2_f64, 0.1], [1.7, 0.3], [0.4, 2.2]];
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
-    let mut gradients = [[0.0_f64; 2]; 3];
-    element
-        .shape_gradients(&mut gradients)
-        .expect("non-degenerate");
+    let element = Simplex::new(&nodes);
+    let gradients = element.shape_gradients().expect("non-degenerate");
 
     let a = [1.7_f64, -0.6];
     let mut recovered = [0.0_f64; 2];
@@ -137,17 +131,8 @@ fn a_degenerate_element_is_rejected_rather_than_returning_infinities() {
     // Returning infinities would push a plausible NaN into the assembled
     // system, where it is far harder to attribute.
     let nodes = [[0.0_f64, 0.0], [1.0, 0.0], [2.0, 0.0]];
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
-    let mut gradients = [[0.0_f64; 2]; 3];
-    assert!(element.shape_gradients(&mut gradients).is_err());
-}
-
-#[test]
-fn the_wrong_node_count_is_rejected() {
-    let too_few = [[0.0_f64, 0.0], [1.0, 0.0]];
-    assert!(Simplex::<f64, 2>::try_new(&too_few).is_err());
-    let too_many = [[0.0_f64, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]];
-    assert!(Simplex::<f64, 2>::try_new(&too_many).is_err());
+    let element = Simplex::new(&nodes);
+    assert_eq!(element.shape_gradients(), Err(DegenerateElement));
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +145,7 @@ fn assert_translation_is_force_free<T: RealField>() {
         [T::from_f64(1.3), T::from_f64(0.1)],
         [T::from_f64(0.4), T::from_f64(1.9)],
     ];
-    let element = Simplex::<T, 2>::try_new(&nodes).expect("three nodes");
+    let element = Simplex::new(&nodes);
     let shift = [T::from_f64(3.7), T::from_f64(-2.1)];
     let displacements = [shift, shift, shift];
     let mut forces = [[T::from_f64(0.0); 2]; 3];
@@ -195,7 +180,7 @@ fn infinitesimal_rotation_of_the_unit_triangle_is_force_free() {
     // shape gradients carry no rounding. The general case is bounded rather
     // than exact — see the rotation property test.
     let nodes = unit_triangle();
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+    let element = Simplex::new(&nodes);
     let w = 0.42_f64;
     let displacements = [
         [-w * nodes[0][1], w * nodes[0][0]],
@@ -221,7 +206,7 @@ fn infinitesimal_rotation_of_the_unit_triangle_is_force_free() {
 #[test]
 fn a_rigid_motion_of_a_tetrahedron_is_also_force_free() {
     let nodes = unit_tetrahedron();
-    let element = Simplex::<f64, 3>::try_new(&nodes).expect("four nodes");
+    let element = Simplex::new(&nodes);
     let shift = [1.5_f64, -0.25, 3.0];
     let displacements = [shift, shift, shift, shift];
     let mut forces = [[0.0_f64; 3]; 4];
@@ -251,7 +236,7 @@ fn nodal_forces_are_self_equilibrated() {
     // not. This follows from the shape gradients summing to zero, so it is a
     // second consumer of that identity.
     let nodes = [[0.0_f64, 0.0], [2.0, 0.3], [0.5, 1.7]];
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+    let element = Simplex::new(&nodes);
     let displacements = [[0.01_f64, -0.02], [0.03, 0.005], [-0.015, 0.02]];
     let mut forces = [[0.0_f64; 2]; 3];
     stiffness_action(
@@ -281,7 +266,7 @@ fn the_stiffness_action_is_energetically_positive() {
     // under deformation. A negative value would mean an element that releases
     // energy when strained, which makes the global solve indefinite.
     let nodes = unit_triangle();
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+    let element = Simplex::new(&nodes);
     let displacements = [[0.0_f64, 0.0], [0.01, 0.0], [0.0, 0.0]];
     let mut forces = [[0.0_f64; 2]; 3];
     stiffness_action(
@@ -308,7 +293,7 @@ fn the_action_is_linear_in_displacement() {
     // K(k u) = k K(u): linearity is what makes the assembled operator
     // constant, so a nonlinearity here would silently invalidate every solve.
     let nodes = unit_triangle();
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+    let element = Simplex::new(&nodes);
     let m = moduli::<f64>(200e9, 0.3);
     let base = [[0.0_f64, 0.0], [0.002, 0.001], [-0.001, 0.003]];
     let k = 3.5_f64;
@@ -328,20 +313,6 @@ fn the_action_is_linear_in_displacement() {
     }
 }
 
-#[test]
-fn misshaped_buffers_are_rejected() {
-    let nodes = unit_triangle();
-    let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
-    let m = moduli::<f64>(200e9, 0.3);
-    let short = [[0.0_f64; 2]; 2];
-    let mut forces = [[0.0_f64; 2]; 3];
-    assert!(stiffness_action(&element, &m, &short, &mut forces).is_err());
-
-    let displacements = [[0.0_f64; 2]; 3];
-    let mut short_forces = [[0.0_f64; 2]; 2];
-    assert!(stiffness_action(&element, &m, &displacements, &mut short_forces).is_err());
-}
-
 // ---------------------------------------------------------------------------
 // Properties
 // ---------------------------------------------------------------------------
@@ -354,7 +325,7 @@ proptest::proptest! {
         young in 1e6_f64..5e11,
     ) {
         let nodes = [[0.0_f64, 0.0], [1.0, 0.0], [0.0, 1.0]];
-        let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+        let element = Simplex::new(&nodes);
         let shift = [ux, uy];
         let displacements = [shift, shift, shift];
         let mut forces = [[0.0_f64; 2]; 3];
@@ -382,7 +353,7 @@ proptest::proptest! {
         // Asserting exactness here would be asserting a coincidence of one
         // geometry — this bounds it instead.
         let nodes = [[0.0_f64, 0.0], [x, 0.0], [0.0, y]];
-        let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
+        let element = Simplex::new(&nodes);
         let displacements = nodes.map(|p| [-w * p[1], w * p[0]]);
         let mut forces = [[0.0_f64; 2]; 3];
         stiffness_action(&element, &moduli::<f64>(young, 0.3), &displacements, &mut forces)
@@ -409,9 +380,10 @@ proptest::proptest! {
         // diagonal edge matrix and cancels exactly, which would make this
         // property test agree with the stronger claim for the wrong reason.
         let nodes = [[0.0_f64, 0.0], [x, skew], [skew, y]];
-        let element = Simplex::<f64, 2>::try_new(&nodes).expect("three nodes");
-        let mut gradients = [[0.0_f64; 2]; 3];
-        proptest::prop_assume!(element.shape_gradients(&mut gradients).is_ok());
+        let element = Simplex::new(&nodes);
+        let Ok(gradients) = element.shape_gradients() else {
+            return Ok(());
+        };
         for component in 0..2 {
             let total: f64 = gradients.iter().map(|g| g[component]).sum();
             let scale = gradients

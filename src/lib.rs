@@ -25,8 +25,6 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-extern crate alloc;
-
 /// Constitutive coupling between strain and stress.
 pub mod constitutive;
 /// Linear simplex elements and their stiffness action.
@@ -35,5 +33,5 @@ pub mod element;
 pub mod kinematics;
 
 pub use constitutive::{CauchyStress, isotropic_hooke};
-pub use element::{InvalidElement, Simplex, stiffness_action};
+pub use element::{DegenerateElement, Simplex, stiffness_action};
 pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};

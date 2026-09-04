@@ -7,6 +7,36 @@ use eunomia::{NumericElement, RealField};
 /// live in the mesh; copying `D + 1` coordinates per element to describe one
 /// would be the allocation churn the hot-path rules exist to avoid.
 ///
+/// # Why the node count is a second const parameter
+///
+/// `N` is `D + 1`, and stable Rust cannot spell that as an array length. The
+/// alternative — a slice checked at construction — makes the count a runtime
+/// error that assembly can never actually trigger, since it gathers into a
+/// buffer it sized itself. Carrying `N` instead makes the count a compile-time
+/// fact: [`Simplex::new`] is infallible, the displacement and force buffers of
+/// [`stiffness_action`](super::stiffness_action) cannot be misshaped, and the
+/// element's only remaining failure is geometric.
+///
+/// Both parameters infer from the argument at every call site, so the pair
+/// costs no annotation:
+///
+/// ```
+/// use ares::Simplex;
+/// // `D = 2` and `N = 3` both come from the argument's type.
+/// let triangle = Simplex::new(&[[0.0_f64, 0.0], [1.0, 0.0], [0.0, 1.0]]);
+/// assert_eq!(triangle.signed_measure(), 0.5);
+/// ```
+///
+/// A mismatched pair is not a runtime error but a compilation failure — the
+/// executable form of the claim that the node count cannot be wrong:
+///
+/// ```compile_fail
+/// use ares::Simplex;
+/// // Four nodes in 2-D: `N = 4`, `D + 1 = 3`. The `const` block rejects it.
+/// let bad = Simplex::new(&[[0.0_f64, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]);
+/// let _ = bad.signed_measure();
+/// ```
+///
 /// # Why linear simplices need no quadrature loop
 ///
 /// Shape functions on a linear simplex are affine, so their gradients are
@@ -16,39 +46,36 @@ use eunomia::{NumericElement, RealField};
 /// elements need a quadrature loop; these do not, and pretending otherwise
 /// would add a rule whose error term is identically zero.
 #[derive(Clone, Copy, Debug)]
-pub struct Simplex<'nodes, T, const D: usize> {
-    nodes: &'nodes [[T; D]],
+pub struct Simplex<'nodes, T, const D: usize, const N: usize> {
+    nodes: &'nodes [[T; D]; N],
 }
 
-impl<'nodes, T: RealField, const D: usize> Simplex<'nodes, T, D> {
+impl<'nodes, T: RealField, const D: usize, const N: usize> Simplex<'nodes, T, D, N> {
     /// Borrow `D + 1` node coordinates as an element.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns [`InvalidElement::NodeCount`] when the slice is not exactly
-    /// `D + 1` long. A simplex is defined by that count; accepting any other
-    /// would silently interpret the extra or missing nodes.
-    pub fn try_new(nodes: &'nodes [[T; D]]) -> Result<Self, InvalidElement> {
-        if nodes.len() == D + 1 {
-            Ok(Self { nodes })
-        } else {
-            Err(InvalidElement::NodeCount {
-                expected: D + 1,
-                found: nodes.len(),
-            })
-        }
+    /// Does not panic at runtime. The `const` block fails compilation when
+    /// `N != D + 1`, so an ill-shaped instantiation never links.
+    #[must_use]
+    pub fn new(nodes: &'nodes [[T; D]; N]) -> Self {
+        const { assert!(N == D + 1, "a simplex in D dimensions has D + 1 nodes") }
+        Self { nodes }
     }
 
     /// The element's node coordinates.
     #[must_use]
-    pub const fn nodes(&self) -> &'nodes [[T; D]] {
+    pub const fn nodes(&self) -> &'nodes [[T; D]; N] {
         self.nodes
     }
 
     /// Edge matrix `J`, whose columns are `x_i - x_0` for `i` in `1..=D`.
-    fn edge_matrix(&self) -> [[T; D]; D] {
+    ///
+    /// Taken by value: a `Simplex` is one reference wide, so borrowing it
+    /// costs more than copying it.
+    fn edge_matrix(self) -> [[T; D]; D] {
         let mut jacobian = [[<T as NumericElement>::ZERO; D]; D];
-        // `nodes` has exactly D + 1 entries, checked at construction.
+        // `N == D + 1`, so skipping node 0 leaves exactly `D` columns.
         for (column, node) in self.nodes.iter().skip(1).enumerate() {
             for (row, target) in jacobian.iter_mut().enumerate() {
                 target[column] = node[row] - self.nodes[0][row];
@@ -72,9 +99,7 @@ impl<'nodes, T: RealField, const D: usize> Simplex<'nodes, T, D> {
         determinant(&self.edge_matrix()) / factorial
     }
 
-    /// Constant gradients of the `D + 1` shape functions.
-    ///
-    /// Writes `grad N_i` into `out[i]`. `out` must hold `D + 1` entries.
+    /// Constant gradients of the `D + 1` shape functions, `grad N_i` at index `i`.
     ///
     /// # Partition of unity, and how exactly it holds
     ///
@@ -91,28 +116,22 @@ impl<'nodes, T: RealField, const D: usize> Simplex<'nodes, T, D> {
     ///
     /// Consumers that need translation invariance must therefore not rely on
     /// this cancellation.
-    /// [`stiffness_action`](crate::stiffness_action) does not: it differences
+    /// [`stiffness_action`](super::stiffness_action) does not: it differences
     /// displacements against a reference node, so a uniform translation gives
     /// an exactly zero gradient whatever these gradients rounded to.
     ///
     /// # Errors
     ///
-    /// Returns [`InvalidElement::NodeCount`] when `out` is misshaped, or
-    /// [`InvalidElement::Degenerate`] when the element has no measure — a
-    /// collapsed element has no well-defined gradient, and returning infinities
-    /// would push a plausible-looking `NaN` into the assembled system.
-    pub fn shape_gradients(&self, out: &mut [[T; D]]) -> Result<(), InvalidElement> {
-        if out.len() != D + 1 {
-            return Err(InvalidElement::NodeCount {
-                expected: D + 1,
-                found: out.len(),
-            });
-        }
-
+    /// Returns [`DegenerateElement`] when the element has no measure — a
+    /// collapsed element has no well-defined gradient, and returning
+    /// infinities would push a plausible-looking `NaN` into the assembled
+    /// system, where it is far harder to attribute.
+    pub fn shape_gradients(&self) -> Result<[[T; D]; N], DegenerateElement> {
         // grad N_i for i in 1..=D are the rows of J^{-1}; solving J^T G = I
         // gives them directly.
-        let inverse = invert(&self.edge_matrix()).ok_or(InvalidElement::Degenerate)?;
+        let inverse = invert(&self.edge_matrix()).ok_or(DegenerateElement)?;
 
+        let mut out = [[<T as NumericElement>::ZERO; D]; N];
         let mut sum = [<T as NumericElement>::ZERO; D];
         for (i, row) in inverse.iter().enumerate() {
             for (component, value) in row.iter().enumerate() {
@@ -123,7 +142,7 @@ impl<'nodes, T: RealField, const D: usize> Simplex<'nodes, T, D> {
         for (component, total) in sum.iter().enumerate() {
             out[0][component] = -*total;
         }
-        Ok(())
+        Ok(out)
     }
 }
 
@@ -207,31 +226,16 @@ fn invert<T: RealField, const D: usize>(matrix: &[[T; D]; D]) -> Option<[[T; D];
     Some(inverse)
 }
 
-/// An element that cannot be interpreted.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InvalidElement {
-    /// A simplex in `D` dimensions has exactly `D + 1` nodes.
-    NodeCount {
-        /// Nodes a `D`-simplex requires.
-        expected: usize,
-        /// Nodes supplied.
-        found: usize,
-    },
-    /// The element has no measure, so its shape gradients are undefined.
-    Degenerate,
-}
+/// The element has no measure, so its shape gradients are undefined.
+///
+/// The only way an element can fail, now that its node count is structural.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DegenerateElement;
 
-impl core::fmt::Display for InvalidElement {
+impl core::fmt::Display for DegenerateElement {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::NodeCount { expected, found } => {
-                write!(formatter, "a simplex needs {expected} nodes, got {found}")
-            }
-            Self::Degenerate => {
-                write!(formatter, "the element is degenerate and has no measure")
-            }
-        }
+        write!(formatter, "the element is degenerate and has no measure")
     }
 }
 
-impl core::error::Error for InvalidElement {}
+impl core::error::Error for DegenerateElement {}

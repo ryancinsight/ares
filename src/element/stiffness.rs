@@ -1,7 +1,7 @@
 use eunomia::{NumericElement, RealField};
 use proteus::IsotropicModuli;
 
-use super::{InvalidElement, Simplex};
+use super::{DegenerateElement, Simplex};
 use crate::constitutive::isotropic_hooke;
 use crate::kinematics::SmallStrain;
 
@@ -11,9 +11,14 @@ use crate::kinematics::SmallStrain;
 ///
 /// # Matrix-free, and why
 ///
-/// Athena's solvers take a `LinearOperator` — they ask for `K u`, never for `K`. So this computes the action directly and
-/// never forms an element matrix, which also means no global sparse matrix is
-/// assembled or stored.
+/// Athena's solvers take a `LinearOperator` — they ask for `K u`, never for
+/// `K`. So this computes the action directly and never forms an element
+/// matrix, which also means no global sparse matrix is assembled or stored.
+///
+/// It is allocation-free: `N` is a compile-time node count, so the shape
+/// gradients live in a stack array. Assembly calls this once per cell, and an
+/// allocation there would be a per-element heap round trip in the hottest loop
+/// the crate has.
 ///
 /// # Formulation
 ///
@@ -21,9 +26,9 @@ use crate::kinematics::SmallStrain;
 /// through the physical quantities that already have owners:
 ///
 /// ```text
-/// eps  = sum_a sym(u_a (x) grad N_a)     kinematics
+/// eps   = sum_a sym(u_a (x) grad N_a)    kinematics
 /// sigma = C : eps                        Proteus closure, via isotropic_hooke
-/// f_a  = measure * sigma . grad N_a      balance
+/// f_a   = measure * sigma . grad N_a     balance
 /// ```
 ///
 /// That is the same operator, expressed in the three quantities the ADR 0055
@@ -34,33 +39,23 @@ use crate::kinematics::SmallStrain;
 ///
 /// # Theorem: rigid-body motions are in the null space
 ///
-/// A rigid displacement gives an antisymmetric (or zero) gradient, so
-/// `eps` is exactly zero, so `sigma` is exactly zero, so every nodal force is
-/// exactly zero. The element exerts no force under rigid motion, exactly
-/// rather than approximately, and that property is inherited from the
-/// kinematics rather than re-established here.
+/// A rigid displacement gives an antisymmetric (or zero) gradient, so `eps` is
+/// zero, so `sigma` is zero, so every nodal force is. Translation is exact —
+/// see the differencing note in the body — while rotation holds to rounding,
+/// because its relative displacements do not vanish and the reconstructed
+/// gradient is antisymmetric only to rounding.
 ///
 /// # Errors
 ///
-/// Returns [`InvalidElement`] when the element is degenerate or the buffers
-/// are misshaped.
-pub fn stiffness_action<T: RealField, const D: usize>(
-    element: &Simplex<'_, T, D>,
+/// Returns [`DegenerateElement`] when the element has collapsed. The buffers
+/// cannot be misshaped: `N` fixes their length at compile time.
+pub fn stiffness_action<T: RealField, const D: usize, const N: usize>(
+    element: &Simplex<'_, T, D, N>,
     moduli: &IsotropicModuli<T>,
-    displacements: &[[T; D]],
-    forces: &mut [[T; D]],
-) -> Result<(), InvalidElement> {
-    let node_count = D + 1;
-    if displacements.len() != node_count || forces.len() != node_count {
-        return Err(InvalidElement::NodeCount {
-            expected: node_count,
-            found: displacements.len().min(forces.len()),
-        });
-    }
-
-    // `D + 1` gradients, sized by the node count rather than by `D`.
-    let mut shape_gradients = alloc::vec![[<T as NumericElement>::ZERO; D]; node_count];
-    element.shape_gradients(&mut shape_gradients)?;
+    displacements: &[[T; D]; N],
+    forces: &mut [[T; D]; N],
+) -> Result<(), DegenerateElement> {
+    let shape_gradients = element.shape_gradients()?;
 
     // grad u = sum_a (u_a - u_0) (x) grad N_a
     //

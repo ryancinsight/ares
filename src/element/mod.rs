@@ -7,5 +7,5 @@
 mod simplex;
 mod stiffness;
 
-pub use simplex::{InvalidElement, Simplex};
+pub use simplex::{DegenerateElement, Simplex};
 pub use stiffness::stiffness_action;
