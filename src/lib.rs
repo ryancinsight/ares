@@ -27,7 +27,10 @@
 
 extern crate alloc;
 
+/// Constitutive coupling between strain and stress.
+pub mod constitutive;
 /// Deformation measures derived from a displacement field.
 pub mod kinematics;
 
+pub use constitutive::{CauchyStress, isotropic_hooke};
 pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};
