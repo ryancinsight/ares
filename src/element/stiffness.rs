@@ -1,7 +1,7 @@
 use eunomia::{NumericElement, RealField};
 use proteus::IsotropicModuli;
 
-use super::{DegenerateElement, Simplex};
+use super::{DegenerateElement, Simplex, gradient::accumulate_gradient};
 use crate::constitutive::isotropic_hooke;
 use crate::kinematics::SmallStrain;
 
@@ -57,35 +57,10 @@ pub fn stiffness_action<T: RealField, const D: usize, const N: usize>(
 ) -> Result<(), DegenerateElement> {
     let shape_gradients = element.shape_gradients()?;
 
-    // grad u = sum_a (u_a - u_0) (x) grad N_a
-    //
-    // Mathematically identical to `sum_a u_a (x) grad N_a`, because the shape
-    // gradients sum to zero. Numerically it is stronger, and that difference
-    // is the whole reason for the subtraction.
-    //
-    // The gradients cancel exactly only when summed in one order. Downstream
-    // they are re-accumulated in another, so `sum_a grad N_a` is zero to
-    // rounding rather than identically — measured at 1.4e-17 for an ordinary
-    // triangle. Under the plain form a rigid translation therefore leaves a
-    // residual gradient proportional to the translation, which becomes a
-    // spurious stress that grows with how far the body has moved and not with
-    // the mesh, so refinement never reveals it.
-    //
-    // Differencing against node 0 removes it at the source: a uniform
-    // translation makes every `u_a - u_0` exactly zero, so the gradient is
-    // exactly zero whatever the shape gradients rounded to. Translation
-    // invariance becomes a property of the formulation rather than of a
-    // cancellation that happens to work out.
-    let reference = displacements[0];
-    let mut gradient = [[<T as NumericElement>::ZERO; D]; D];
-    for (displacement, shape) in displacements.iter().zip(shape_gradients.iter()) {
-        for (i, row) in gradient.iter_mut().enumerate() {
-            let relative = displacement[i] - reference[i];
-            for (j, entry) in row.iter_mut().enumerate() {
-                *entry += relative * shape[j];
-            }
-        }
-    }
+    // The differencing that makes a rigid translation exactly force-free
+    // lives in `accumulate_gradient`, shared with the strain recovery so the
+    // two cannot drift apart.
+    let gradient = accumulate_gradient(&shape_gradients, displacements);
 
     let strain = SmallStrain::<T, D>::from_displacement_gradient(&gradient);
     let stress = isotropic_hooke(moduli, &strain);
