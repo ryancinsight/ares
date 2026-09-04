@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Pull requests share one group per ref and cancel superseded runs; default-
+  # branch runs get one group per commit, since GitHub supersedes a pending run
+  # in a shared group whatever `cancel-in-progress` says.
+  group: ares-ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  # Guards the one artifact whose correctness cannot be checked from inside the
+  # overlay environment that produces it. Calls the shared Atlas workflow.
+  lockfile:
+    name: Lockfile integrity
+    uses: ryancinsight/atlas/.github/workflows/lockfile-guard.yml@886d85b0e4bea20c8e5ec4b4239e6ba9cdbcf74d
+    permissions:
+      contents: read
+
+  verify:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: dtolnay/rust-toolchain@a5f673d0ba8626c3977bb416a1612774bc82181b
+        with:
+          components: clippy, rustfmt
+      - uses: taiki-e/install-action@ea4c0b50b0d394ee91c5bb68a6a295b0556feb8e
+        with:
+          tool: cargo-nextest
+      - name: Format
+        run: cargo fmt --all -- --check
+      # `ares` is `#![no_std]` with a `std` feature that only forwards to its
+      # dependencies, so the default-feature-off build is a real configuration
+      # rather than a variant of the same one. `ares-athena` links `std`
+      # unconditionally and is excluded here for that reason.
+      - name: Feature check
+        run: cargo check --locked -p ares-solid --no-default-features
+      - name: Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Native tests
+        run: cargo nextest run --locked --all-features --profile ci
+      - name: Documentation tests
+        run: cargo test --locked --doc --all-features
+      - name: Documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --no-deps --all-features
+
+  msrv:
+    name: MSRV
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      # The install step sets a rustup *default*; the committed
+      # rust-toolchain.toml outranks it, so without this the job would compile
+      # with the pinned channel and prove nothing about the floor.
+      RUSTUP_TOOLCHAIN: 1.95.0
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: dtolnay/rust-toolchain@a5f673d0ba8626c3977bb416a1612774bc82181b
+        with:
+          toolchain: 1.95.0
+      - name: Prove the toolchain under test
+        run: rustc --version && cargo --version
+      - name: Build at declared MSRV
+        run: cargo check --locked --all-targets --all-features
+
+  # Public-surface compatibility through the stack's one gate (atlas ADR 0035).
+  # Both crates are published, so both are gated; a per-repo hand-rolled job
+  # would be the duplication defect that shared workflow exists to prevent.
+  semver-core:
+    name: SemVer gate (ares-solid)
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    with:
+      package: ares-solid
+      rust-toolchain: 1.97.0
+    permissions:
+      contents: read
+
+  semver-athena:
+    name: SemVer gate (ares-athena)
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    with:
+      package: ares-athena
+      rust-toolchain: 1.97.0
+    permissions:
+      contents: read
+
+  supply-chain:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: dtolnay/rust-toolchain@a5f673d0ba8626c3977bb416a1612774bc82181b
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25

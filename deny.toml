@@ -1,3 +1,14 @@
+# `cargo deny` configuration.
+#
+# The substrate prohibitions below govern what this crate *ships*, so the graph
+# excludes dev-dependencies. ADR 0055 names a runtime substrate contract, and
+# the atlas conformance scan measures it the same way - "a member's resolved
+# runtime dependency tables". `proptest` reaching `num-traits` is a property
+# -testing dependency, not a numeric-abstraction choice, and banning it would
+# be enforcing the rule's letter against its subject.
+[graph]
+exclude-dev = true
+
 [advisories]
 version = 2
 
@@ -23,8 +34,21 @@ deny = [
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+# First-party stack remotes only. `athena` and `leto` arrive with the operator
+# seam (ADR 0001) - it is implementable only against a named Krylov backend,
+# and the only host backend is Leto-backed - and the rest are Athena's own
+# substrate reaching this graph transitively. Enumerated from the resolved
+# lockfile rather than from the manifests, since a direct-dependency list would
+# miss exactly the transitive edges this check exists to see.
 allow-git = [
+    "https://github.com/ryancinsight/Mnemosyne",
+    "https://github.com/ryancinsight/Moirai",
     "https://github.com/ryancinsight/aequitas",
+    "https://github.com/ryancinsight/athena",
     "https://github.com/ryancinsight/eunomia",
+    "https://github.com/ryancinsight/hermes",
+    "https://github.com/ryancinsight/leto",
+    "https://github.com/ryancinsight/melinoe",
     "https://github.com/ryancinsight/proteus",
+    "https://github.com/ryancinsight/themis",
 ]
