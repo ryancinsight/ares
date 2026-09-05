@@ -25,6 +25,19 @@ by atlas ADR 0057. Plasticity, finite deformation, contact, dynamics,
 fracture, fatigue, and anisotropy are later phases, and none is scaffolded — a
 module for a capability that does not exist is a placeholder.
 
+## Governing decisions
+
+[`docs/adr`](docs/adr) records decisions local to this repository. Decisions
+that bind Ares from outside it live in the
+[Atlas](https://github.com/ryancinsight/atlas) meta-repository:
+
+| Record | Subject |
+| --- | --- |
+| atlas ADR 0055 | Continuum domain decomposition — Proteus closes, Ares balances |
+| atlas ADR 0056 | New-construction promotion path |
+| atlas ADR 0057 | Ares phase 0 charter |
+| atlas ADR 0059 | Fluid–structure coupling phase 0 |
+
 ## The book
 
 [`docs/book`](docs/book) teaches continuum solid mechanics and this crate
