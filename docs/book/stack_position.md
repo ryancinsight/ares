@@ -34,8 +34,8 @@ Strictly inward, and only on vocabulary and infrastructure:
 | `aequitas` | typed physical quantities — a stress cannot be assigned to a length |
 | `eunomia` | scalar and numeric-trait vocabulary |
 | `proteus` | the constitutive closure |
-| `athena`, `leto` | the solve (in `ares-athena` only) |
-| `harmonia` | coupling (in `ares-harmonia` only) |
+| `athena`, `leto` | the solve (in `ares-operator` only) |
+| `harmonia` | coupling (in `ares-coupling` only) |
 
 The domain crate has the first three and nothing else. It is `no_std`, forbids
 `unsafe`, and allocates nothing.
@@ -57,7 +57,7 @@ preventive and started checking something.
 assembly reads, not a mesh representation competing with Gaia's.
 
 **No solver policy.** Athena owns iteration, preconditioning, and convergence.
-`ares-athena` presents the assembled operator in the shape Athena consumes and
+`ares-operator` presents the assembled operator in the shape Athena consumes and
 makes no decision about how it is solved.
 
 **No time integration.** Horae owns time. Phase 0 is static and has none; when
@@ -69,8 +69,8 @@ here.
 | Crate | Links `std`? | Depends on |
 | --- | --- | --- |
 | `ares-solid` | no | aequitas, eunomia, proteus |
-| `ares-athena` | yes | ares, athena, leto |
-| `ares-harmonia` | yes | ares, ares-athena, harmonia |
+| `ares-operator` | yes | ares, athena, leto |
+| `ares-coupling` | yes | ares, ares-operator, harmonia |
 
 The split follows from Athena's trait, as chapter 8 explains: its operator seam
 can only be implemented against a *named* backend, and the only host backend
@@ -83,7 +83,7 @@ build by default, and a feature-gated solver path is an untested path.
 [ADR 0001](https://github.com/ryancinsight/ares/blob/main/docs/adr/0001-athena-seam-as-a-separate-crate.md)
 records the decision.
 
-Dependencies run strictly inward. `ares-harmonia` depends on `ares`; nothing
+Dependencies run strictly inward. `ares-coupling` depends on `ares`; nothing
 depends back.
 
 ## Registry naming

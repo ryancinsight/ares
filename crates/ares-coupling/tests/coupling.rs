@@ -32,8 +32,8 @@
 )]
 
 use ares::{DirichletConditions, PrescribedDisplacement, SimplexMesh, TractionFacet};
-use ares_athena::ConstrainedStiffness;
-use ares_harmonia::{InvalidInterface, StructuralInterface, StructuralPartition};
+use ares_coupling::{InvalidInterface, StructuralInterface, StructuralPartition};
+use ares_operator::ConstrainedStiffness;
 use athena_core::ConvergencePolicy;
 use harmonia::Partition as _;
 use proteus::IsotropicModuli;

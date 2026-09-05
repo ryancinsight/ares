@@ -1,5 +1,5 @@
 use ares::{SimplexMesh, TractionBoundary, TractionFacet};
-use ares_athena::ConstrainedStiffness;
+use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity, KrylovBackend, Termination};
 use athena_leto::LetoBackend;
 use eunomia::{NumericElement, RealField};

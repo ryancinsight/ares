@@ -21,7 +21,7 @@ use aequitas::systems::si::quantities::{Dimensionless, Pressure};
 use ares::{
     DirichletConditions, PrescribedDisplacement, SimplexMesh, TractionBoundary, TractionFacet,
 };
-use ares_athena::ConstrainedStiffness;
+use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity, KrylovBackend, LinearOperator};
 use athena_leto::LetoBackend;
 use eunomia::RealField;

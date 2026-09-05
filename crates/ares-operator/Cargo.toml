@@ -1,5 +1,5 @@
 [package]
-name = "ares-athena"
+name = "ares-operator"
 description = "Athena linear-operator seam for the Ares solid momentum balance"
 readme = "README.md"
 keywords = ["solid-mechanics", "finite-element", "krylov", "multiphysics"]

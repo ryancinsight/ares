@@ -41,7 +41,7 @@ no infrastructure of their own.
 Split the repository into a workspace:
 
 - `crates/ares` (`ares-solid`) — the domain core, unchanged in its properties.
-- `crates/ares-athena` — the seam, linking `std`, depending on `ares`.
+- `crates/ares-operator` — the seam, linking `std`, depending on `ares`.
 
 Dependencies run strictly inward. `ares` gains no edge to Athena, Leto, or any
 solver.
@@ -80,7 +80,7 @@ buffer no caller can observe; `ares` keeps the scratch as an explicit parameter
 so a caller holding a `&mut` buffer never pays for a borrow flag.
 
 Publication becomes two crates in dependency order, `ares-solid` then
-`ares-athena` (atlas ADR 0057 phase A9).
+`ares-operator` (atlas ADR 0057 phase A9).
 
 A second backend — Athena's `HephaestusBackend` for accelerators — becomes a
 second `impl` in this crate rather than a second crate, since it shares the
@@ -89,7 +89,31 @@ domain dependency and the `std` linkage.
 ## Verification
 
 The architecture test asserts the edge set: `ares` depends on no solver crate,
-`ares-athena` depends on `ares`, and there is no edge back. The seam carries
+`ares-operator` depends on `ares`, and there is no edge back. The seam carries
 relay-fidelity tests asserting bitwise equality between what Athena receives
 and what the domain crate produces, so the adapter cannot silently transform
 anything in passing.
+
+## Revisions
+
+**2026-09-04 — the seam crates are named for their concern, not their
+dependency.** This record originally named them `ares-athena` and, alongside
+it, `ares-harmonia`. Both are the `<host>-<sibling>` shape that AGENTS.md
+`standards: Naming prohibition` and `architecture_scoping: Upstream ownership`
+prohibit: the name states the dependency rather than the concern, reuses the
+sibling's identity for a second thing, and rots when the sibling is renamed or
+replaced. They are now `ares-operator` (it presents a linear operator) and
+`ares-coupling` (it presents a coupling partition).
+
+The decision this record makes — that the seam is a *separate crate* — is
+unchanged, and the reasoning above stands as written. Only the names moved.
+
+Driving evidence: nine crates stack-wide carry the prohibited shape, tracked as
+[`atlas#sibling-named-crates`](https://github.com/ryancinsight/atlas/blob/main/backlog.md#sibling-named-crates);
+`ares` is the first remediation because both crates were created the same day,
+are unpublished, and have no consumer to migrate.
+
+One defect the rename does **not** fix: `ares-coupling` is `publish = true` and
+depends on `harmonia`, which is `publish = false`. `engineering_gates: Publish
+pipelines` makes that a topology defect, and it is resolved by graduating
+`harmonia` rather than in this repository.

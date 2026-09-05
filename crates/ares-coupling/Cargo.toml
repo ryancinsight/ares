@@ -1,5 +1,5 @@
 [package]
-name = "ares-harmonia"
+name = "ares-coupling"
 description = "Harmonia coupling partition for the Ares solid momentum balance"
 readme = "README.md"
 keywords = ["solid-mechanics", "multiphysics", "coupling", "fsi"]
@@ -14,7 +14,7 @@ publish.workspace = true
 
 [dependencies]
 ares.workspace = true
-ares-athena.workspace = true
+ares-operator.workspace = true
 athena-core.workspace = true
 athena-leto.workspace = true
 eunomia.workspace = true

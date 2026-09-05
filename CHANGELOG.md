@@ -23,10 +23,21 @@
   convergence-rate studies stay at `f64`, because `f32` reaches its precision
   floor before the study leaves the asymptotic regime.
 
+- One-way fluid-to-solid coupling (atlas ADR 0059) in `ares-coupling`: a
+  `StructuralInterface` carrying facet-major traction and node-major
+  displacement, and a `StructuralPartition` implementing Harmonia's
+  `Partition`. Interface work is conserved exactly — the work the fluid does
+  equals twice the stored strain energy — which holds because the nodal load is
+  the consistent one; a lumped load with the same resultant breaks it, and the
+  suite was mutation-checked against exactly that substitution.
+
+  Non-conforming interfaces are rejected with a typed error rather than
+  transferred approximately.
+
 ### Changed
 
 - The repository is a workspace: `crates/ares` (`ares-solid`) is the `no_std`,
-  allocation-free domain core, and `crates/ares-athena` is the Athena operator
+  allocation-free domain core, and `crates/ares-operator` is the Athena operator
   seam, which links `std` through `leto`. See
   [ADR 0001](docs/adr/0001-athena-seam-as-a-separate-crate.md).
 

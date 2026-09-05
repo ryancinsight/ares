@@ -1,4 +1,4 @@
-# ares-harmonia
+# ares-coupling
 
 The [Harmonia](https://github.com/ryancinsight/harmonia) coupling partition for
 the [Ares](https://github.com/ryancinsight/ares) solid momentum balance.

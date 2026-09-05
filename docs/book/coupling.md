@@ -24,11 +24,11 @@ silently ignored the return path would be a mock of the thing it claims to be.
 ## The partition
 
 Harmonia drives coupled problems by asking each side to advance and to export
-its interface values. `ares-harmonia` presents the structural solve in that
+its interface values. `ares-coupling` presents the structural solve in that
 shape.
 
 ```rust,ignore
-use ares_harmonia::{StructuralInterface, StructuralPartition};
+use ares_coupling::{StructuralInterface, StructuralPartition};
 
 let interface = StructuralInterface::try_new(&interface_nodes, &facets, &mesh)?;
 let mut partition = StructuralPartition::try_new(mesh, operator, interface, policy)?;

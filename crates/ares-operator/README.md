@@ -1,4 +1,4 @@
-# ares-athena
+# ares-operator
 
 The [Athena](https://github.com/ryancinsight/athena) linear-operator seam for
 the [Ares](https://github.com/ryancinsight/ares) solid momentum balance.
@@ -20,12 +20,12 @@ one CI does not build by default. See [ADR 0001](../../docs/adr/0001-athena-seam
 
 ```toml
 [dependencies]
-ares-athena = "0.1.0"
+ares-operator = "0.1.0"
 ```
 
 ```rust,ignore
 use ares::{DirichletConditions, SimplexMesh};
-use ares_athena::ConstrainedStiffness;
+use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity};
 use athena_leto::LetoBackend;
 

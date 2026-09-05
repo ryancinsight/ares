@@ -1,7 +1,7 @@
 //! Structured fixtures and the solve harness shared by the oracles.
 
 use ares::{DirichletConditions, PrescribedDisplacement, SimplexMesh};
-use ares_athena::ConstrainedStiffness;
+use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity};
 use athena_leto::LetoBackend;
 use eunomia::RealField;

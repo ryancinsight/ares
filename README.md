@@ -12,11 +12,11 @@ balances (atlas ADR 0055).
 | Crate | Registry name | What it is |
 | --- | --- | --- |
 | [`crates/ares`](crates/ares) | `ares-solid` | The domain core. `#![no_std]`, allocation-free, depends only on vocabulary crates. |
-| [`crates/ares-athena`](crates/ares-athena) | `ares-athena` | The Athena linear-operator seam. Links `std` through `leto`. |
+| [`crates/ares-operator`](crates/ares-operator) | `ares-operator` | The Athena linear-operator seam. Links `std` through `leto`. |
 
 The split keeps the domain core free of infrastructure — see
 [ADR 0001](docs/adr/0001-athena-seam-as-a-separate-crate.md). Dependencies run
-strictly inward: `ares-athena` depends on `ares`, never the reverse.
+strictly inward: `ares-operator` depends on `ares`, never the reverse.
 
 ## Scope
 

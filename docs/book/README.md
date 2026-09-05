@@ -61,8 +61,8 @@ falsified a claim its own author had written down.
 | Crate | What it is |
 | --- | --- |
 | `ares-solid` (imported as `ares`) | The domain core. `no_std`, allocation-free, depends only on vocabulary crates. |
-| `ares-athena` | The Athena linear-operator seam. |
-| `ares-harmonia` | The Harmonia coupling partition. |
+| `ares-operator` | The Athena linear-operator seam. |
+| `ares-coupling` | The Harmonia coupling partition. |
 
 The split exists because Athena's solver seam can only be implemented against
 a named backend, and the only host backend links `std`. Keeping that out of

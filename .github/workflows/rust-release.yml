@@ -64,7 +64,7 @@ jobs:
             package="$INPUT_PACKAGE"
             version="$INPUT_VERSION"
           fi
-          if [[ ! "$package" =~ ^(ares-solid|ares-athena|ares-harmonia)$ ]]; then
+          if [[ ! "$package" =~ ^(ares-solid|ares-operator|ares-coupling)$ ]]; then
             echo "unknown package for this repository: $package" >&2
             exit 1
           fi

@@ -2,7 +2,7 @@
 
 The assembled operator and the load vector give a linear system. Ares does not
 solve it: [Athena](https://github.com/ryancinsight/athena) owns solver policy,
-and `ares-athena` is the seam between them.
+and `ares-operator` is the seam between them.
 
 ## Why conjugate gradients
 
@@ -15,7 +15,7 @@ one.
 
 ```rust,ignore
 use ares::{DirichletConditions, SimplexMesh};
-use ares_athena::ConstrainedStiffness;
+use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity};
 use athena_leto::LetoBackend;
 

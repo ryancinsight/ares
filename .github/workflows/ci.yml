@@ -43,7 +43,7 @@ jobs:
         run: cargo fmt --all -- --check
       # `ares` is `#![no_std]` with a `std` feature that only forwards to its
       # dependencies, so the default-feature-off build is a real configuration
-      # rather than a variant of the same one. `ares-athena` links `std`
+      # rather than a variant of the same one. `ares-operator` links `std`
       # unconditionally and is excluded here for that reason.
       - name: Feature check
         run: cargo check --locked -p ares-solid --no-default-features
@@ -90,19 +90,19 @@ jobs:
       contents: read
 
   semver-athena:
-    name: SemVer gate (ares-athena)
+    name: SemVer gate (ares-operator)
     uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
     with:
-      package: ares-athena
+      package: ares-operator
       rust-toolchain: 1.97.0
     permissions:
       contents: read
 
   semver-harmonia:
-    name: SemVer gate (ares-harmonia)
+    name: SemVer gate (ares-coupling)
     uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
     with:
-      package: ares-harmonia
+      package: ares-coupling
       rust-toolchain: 1.97.0
     permissions:
       contents: read
