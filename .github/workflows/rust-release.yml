@@ -24,9 +24,7 @@ concurrency:
 jobs:
   semver:
     name: SemVer gate (release)
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'crate-')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@ad3d67694dd128a000de57cb0c970789b4947e83
     with:
       release-gate: true
@@ -37,14 +35,13 @@ jobs:
 
   publish:
     needs: semver
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'crate-')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     uses: ryancinsight/atlas/.github/workflows/crates-publish.yml@ad3d67694dd128a000de57cb0c970789b4947e83
     permissions:
       contents: read
-      id-token: write # OIDC trusted publishing; no stored registry token.
+      id-token: write
     with:
       rust-toolchain: "1.97.0"
+      tag-prefix: ""
       dispatch-package: ${{ inputs.package }}
       dispatch-version: ${{ inputs.version }}
