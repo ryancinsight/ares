@@ -207,6 +207,20 @@ impl<T: RealScalar + RealField, const D: usize, const N: usize> Partition<T>
 {
     type Error = PartitionError;
 
+    /// No replay state to capture. Every internally owned buffer is derived
+    /// from `(state, input)` at the start of each advance — `facets`,
+    /// `external`, and `load` are rebuilt from the incoming traction,
+    /// `solution` is warm-started by copying `state` before the Krylov solve
+    /// overwrites it, and the CG workspace is scratch whose contents never
+    /// steer a result. The partition is a pure function of `(state, input)`,
+    /// so the checkpoint Harmonia restores between fixed-point evaluations is
+    /// the empty tuple.
+    type Checkpoint = ();
+
+    fn checkpoint(&self) -> Self::Checkpoint {}
+
+    fn restore(&mut self, (): &Self::Checkpoint) {}
+
     fn state_dimension(&self) -> usize {
         self.mesh.degrees_of_freedom()
     }
