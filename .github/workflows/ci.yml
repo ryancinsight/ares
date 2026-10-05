@@ -82,7 +82,7 @@ jobs:
   # would be the duplication defect that shared workflow exists to prevent.
   semver-core:
     name: SemVer gate (ares-solid)
-    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
     with:
       package: ares-solid
       rust-toolchain: 1.97.0
@@ -91,7 +91,7 @@ jobs:
 
   semver-athena:
     name: SemVer gate (ares-operator)
-    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
     with:
       package: ares-operator
       rust-toolchain: 1.97.0
@@ -100,7 +100,7 @@ jobs:
 
   semver-harmonia:
     name: SemVer gate (ares-coupling)
-    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@466b47a9a604bc9c91d4848f0b6c1df36a2bd5c2
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
     with:
       package: ares-coupling
       rust-toolchain: 1.97.0
