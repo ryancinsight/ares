@@ -1,4 +1,3 @@
-use aequitas::systems::si::quantities::Dimensionless;
 use eunomia::{NumericElement, RealField};
 
 /// A symmetric second-order tensor in `D` dimensions.
@@ -142,15 +141,20 @@ impl<T: RealField, const D: usize> SymmetricTensor<T, D> {
 }
 
 impl<T: RealField, const D: usize> SymmetricTensor<T, D> {
-    /// One component, as a dimensionless quantity.
+    /// One component in the tensor's own unit.
+    ///
+    /// The tensor is unit-agnostic: callers interpret the value through the
+    /// wrapper type (`SmallStrain` is dimensionless, `CauchyStress` is Pa),
+    /// so this deliberately returns the raw scalar rather than asserting a
+    /// unit the tensor cannot know.
     ///
     /// Returns `None` when either index is outside the tensor.
     #[must_use]
-    pub fn component(&self, row: usize, column: usize) -> Option<Dimensionless<T>> {
+    pub fn component(&self, row: usize, column: usize) -> Option<T> {
         self.components
             .get(row)
             .and_then(|entries| entries.get(column))
-            .map(|value| Dimensionless::from_base(*value))
+            .copied()
     }
 }
 
