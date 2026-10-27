@@ -36,6 +36,12 @@
 
 ### Changed
 
+- `CauchyStress::second_deviatoric_invariant` returns the new
+  `PressureSquared` quantity instead of a raw scalar: `J2` is `Pressure ×
+  Pressure` through the aequitas dimension algebra, and `von_mises` takes
+  `sqrt(3 J2)` through the type-level root, so the relation is checked at
+  compile time. Closed-form oracles pin `sigma^2/3` (uniaxial) and `tau^2`
+  (pure shear).
 - The repository is a workspace: `crates/ares` (`ares-solid`) is the `no_std`,
   allocation-free domain core, and `crates/ares-operator` is the Athena operator
   seam, which links `std` through `leto`. See

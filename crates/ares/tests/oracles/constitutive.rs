@@ -13,7 +13,7 @@
 )]
 
 use super::support::moduli;
-use ares::{CauchyStress, SmallStrain, SymmetricTensor, isotropic_hooke};
+use ares::{CauchyStress, PressureSquared, SmallStrain, SymmetricTensor, isotropic_hooke};
 use eunomia::RealField;
 
 fn uniaxial_strain<T: RealField, const D: usize>(e: f64) -> SmallStrain<T, D> {
@@ -212,6 +212,50 @@ fn von_mises_under_pure_shear_is_root_three_times_the_shear_stress() {
         (equivalent - expected).abs() <= tolerance,
         "von Mises {equivalent} differs from sqrt(3) tau = {expected}"
     );
+}
+
+#[test]
+fn second_deviatoric_invariant_matches_the_uniaxial_closed_form() {
+    // Uniaxial stress sigma: free transverse contraction -nu*e leaves the
+    // lateral stresses zero, the deviator is diag(2sigma/3, -sigma/3,
+    // -sigma/3), and J2 = (4sigma^2/9 + sigma^2/9 + sigma^2/9) / 2 =
+    // sigma^2/3. The annotation pins the pressure-squared dimension at
+    // compile time.
+    let (young, poisson, e) = (200e9_f64, 0.3_f64, 1e-3_f64);
+    let m = moduli::<f64>(young, poisson);
+    let lateral = -poisson * e;
+    let gradient = [[e, 0.0, 0.0], [0.0, lateral, 0.0], [0.0, 0.0, lateral]];
+    let stress = isotropic_hooke(
+        &m,
+        &SmallStrain::<f64, 3>::from_displacement_gradient(&gradient),
+    );
+
+    let axial = stress.tensor().components()[0][0];
+    let invariant: PressureSquared<f64> = stress.second_deviatoric_invariant();
+    let expected = axial * axial / 3.0;
+    let tolerance = expected.abs() * f64::EPSILON * 64.0;
+    assert!(
+        (*invariant.as_base() - expected).abs() <= tolerance,
+        "J2 {} differs from sigma^2/3 = {expected}",
+        invariant.as_base()
+    );
+}
+
+#[test]
+fn second_deviatoric_invariant_of_pure_shear_is_tau_squared() {
+    // Pure shear tau: s:s = 2 tau^2, so J2 = tau^2. The double-dot adds two
+    // identical products and halves, which is exact, so equality is exact.
+    let m = moduli::<f64>(70e9, 0.33);
+    let mu = *m.shear_modulus().as_base();
+    let g = 4e-4_f64;
+
+    let strain = SmallStrain::<f64, 2>::from_displacement_gradient(&[[0.0, g], [0.0, 0.0]]);
+    let stress = isotropic_hooke(&m, &strain);
+
+    let tau = stress.tensor().components()[0][1];
+    assert_eq!(tau, mu * g); // 2 mu * (g/2)
+    let invariant: PressureSquared<f64> = stress.second_deviatoric_invariant();
+    assert_eq!(*invariant.as_base(), tau * tau);
 }
 
 #[test]
