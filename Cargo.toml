@@ -10,7 +10,7 @@ resolver = "3"
 # infrastructure and the dependency direction inward.
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.95"
 authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
@@ -19,8 +19,8 @@ repository = "https://github.com/ryancinsight/ares"
 publish = true
 
 [workspace.dependencies]
-ares = { package = "ares-solid", version = "0.1.0", path = "crates/ares", default-features = false }
-ares-operator = { version = "0.1.0", path = "crates/ares-operator" }
+ares = { package = "ares-solid", version = "0.2.0", path = "crates/ares", default-features = false }
+ares-operator = { version = "0.2.0", path = "crates/ares-operator" }
 aequitas = { version = "0.3.1", git = "https://github.com/ryancinsight/aequitas", default-features = false }
 athena-core = { version = "0.3.2", git = "https://github.com/ryancinsight/athena", default-features = false }
 athena-leto = { version = "0.3.2", git = "https://github.com/ryancinsight/athena", default-features = false }
