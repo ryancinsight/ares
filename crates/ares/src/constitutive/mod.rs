@@ -8,4 +8,4 @@ mod hooke;
 mod stress;
 
 pub use hooke::isotropic_hooke;
-pub use stress::CauchyStress;
+pub use stress::{CauchyStress, PressureSquared};

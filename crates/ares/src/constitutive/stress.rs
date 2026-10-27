@@ -1,7 +1,19 @@
+use aequitas::Quantity;
+use aequitas::dimension::MultiplyDimension;
+use aequitas::systems::si::dimensions::Pressure as PressureDimension;
 use aequitas::systems::si::quantities::Pressure;
 use eunomia::{NumericElement, RealField};
 
 use crate::kinematics::SymmetricTensor;
+
+/// Second-deviatoric-invariant quantity, in pressure squared.
+///
+/// Composed through [`MultiplyDimension`] rather than declared by hand, so the
+/// dimension algebra stays the single source: `PressureSquared` is
+/// `Pressure × Pressure`, and `PressureSquared::sqrt()` is `Pressure` by the
+/// type-level root, which [`CauchyStress::von_mises`] relies on.
+pub type PressureSquared<T = f64> =
+    Quantity<T, <PressureDimension as MultiplyDimension<PressureDimension>>::Output>;
 
 /// The Cauchy stress tensor, in pascals.
 ///
@@ -39,15 +51,23 @@ impl<T: RealField, const D: usize> CauchyStress<T, D> {
         self.tensor.deviator()
     }
 
-    /// The second deviatoric invariant `J2 = (s : s) / 2`.
+    /// The second deviatoric invariant `J2 = (s : s) / 2`, in pressure squared.
+    ///
+    /// Closed forms: `sigma^2 / 3` under uniaxial stress `sigma`, and `tau^2`
+    /// under pure shear `tau`. Hydrostatic loading contributes nothing, since
+    /// the deviator of a spherical tensor vanishes.
     #[must_use]
-    pub fn second_deviatoric_invariant(&self) -> T {
+    pub fn second_deviatoric_invariant(&self) -> PressureSquared<T> {
         let two = <T as NumericElement>::ONE + <T as NumericElement>::ONE;
         let deviator = self.deviatoric();
-        deviator.double_dot(&deviator) / two
+        PressureSquared::from_base(deviator.double_dot(&deviator) / two)
     }
 
     /// Von Mises equivalent stress `sqrt(3 J2)`.
+    ///
+    /// The product `3 * J2` stays a pressure-squared quantity and the root
+    /// halves the dimension at the type level, so a change to the invariant's
+    /// dimension that broke this relation would fail to compile.
     ///
     /// # Why via `J2` rather than principal stresses
     ///
@@ -60,7 +80,7 @@ impl<T: RealField, const D: usize> CauchyStress<T, D> {
     pub fn von_mises(&self) -> Pressure<T> {
         let three =
             <T as NumericElement>::ONE + <T as NumericElement>::ONE + <T as NumericElement>::ONE;
-        Pressure::from_base((three * self.second_deviatoric_invariant()).sqrt())
+        (self.second_deviatoric_invariant() * three).sqrt()
     }
 
     #[inline]

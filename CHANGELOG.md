@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0] - Unreleased
+
+### Changed
+
+- [minor] `CauchyStress::second_deviatoric_invariant` returns the new
+  `PressureSquared` quantity instead of a raw scalar: `J2` is `Pressure ×
+  Pressure` through the aequitas dimension algebra, and `von_mises` takes
+  `sqrt(3 J2)` through the type-level root, so the dimension relation is
+  checked at compile time. Closed-form oracles pin `sigma^2/3` (uniaxial
+  stress) and `tau^2` (pure shear).
+
 ## [Unreleased]
 
 ### Added

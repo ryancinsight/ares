@@ -41,6 +41,6 @@ pub use boundary::{
     DirichletConditions, InvalidBoundary, InvalidConditions, MisshapedLoad, PrescribedDisplacement,
     TractionBoundary, TractionFacet,
 };
-pub use constitutive::{CauchyStress, isotropic_hooke};
+pub use constitutive::{CauchyStress, PressureSquared, isotropic_hooke};
 pub use element::{DegenerateElement, Simplex, stiffness_action};
 pub use kinematics::{AsymmetricInput, SmallStrain, SymmetricTensor};
