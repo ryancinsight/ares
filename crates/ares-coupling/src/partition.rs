@@ -165,7 +165,7 @@ impl<'system, T: RealScalar + RealField, const D: usize, const N: usize>
             *slot = <T as NumericElement>::ZERO;
         }
         boundary
-            .add_consistent_loads(self.mesh.nodes(), &mut self.external)
+            .add_consistent_loads(&mut self.external)
             .map_err(|_| PartitionError::Boundary)?;
         self.operator
             .load(&self.external, &mut self.load)

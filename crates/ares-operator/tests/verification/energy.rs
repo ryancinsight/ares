@@ -49,7 +49,7 @@ fn strain_energy_equals_external_work() {
     let boundary = TractionBoundary::try_new(&facets, &grid.nodes).expect("valid facets");
     let mut external = vec![0.0_f64; grid.degrees_of_freedom()];
     boundary
-        .add_consistent_loads(&grid.nodes, &mut external)
+        .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
     let displacement = solve(&mesh, material, &prescribed, &external);

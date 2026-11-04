@@ -41,7 +41,7 @@ fn a_traction_carries_its_exact_resultant_force() {
 
     let mut loads = [0.0_f64; 8];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     for component in 0..2 {
@@ -68,7 +68,7 @@ fn a_traction_carries_its_exact_resultant_moment() {
 
     let mut loads = [0.0_f64; 8];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     // Scalar moment about the origin: sum of (x f_y - y f_x).
@@ -101,7 +101,7 @@ fn a_three_dimensional_traction_carries_its_exact_resultant() {
 
     let mut loads = [0.0_f64; 12];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     let total: f64 = (0..4).map(|node| loads[node * 3 + 1]).sum();
@@ -125,12 +125,12 @@ fn a_traction_scales_with_the_facet_rather_than_the_node_count() {
     let mut short_loads = [0.0_f64; 4];
     TractionBoundary::try_new(&facets, &short)
         .expect("valid")
-        .add_consistent_loads(&short, &mut short_loads)
+        .add_consistent_loads(&mut short_loads)
         .expect("well-shaped");
     let mut long_loads = [0.0_f64; 4];
     TractionBoundary::try_new(&facets, &long)
         .expect("valid")
-        .add_consistent_loads(&long, &mut long_loads)
+        .add_consistent_loads(&mut long_loads)
         .expect("well-shaped");
 
     let short_total: f64 = (0..2).map(|node| short_loads[node * 2]).sum();
@@ -152,7 +152,7 @@ fn tractions_accumulate_rather_than_overwrite() {
 
     let mut loads = [0.0_f64, 7.0, 0.0, 0.0, 0.0, 0.0];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     // Node 1 is shared, so it takes half of each facet: a full facet's worth.

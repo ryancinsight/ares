@@ -62,6 +62,11 @@ Oracles are mutation-measured rather than assumed: each records which defects
 it was observed to catch, and where a mutation revealed an overclaim the claim
 was corrected rather than the mutation dismissed.
 
+Traction boundaries retain the immutable coordinate domain that construction
+validates; see [ADR 0002](docs/adr/0002-traction-coordinate-domain.md) and the
+[0.3.0 migration](CHANGELOG.md). Current qualification and release prerequisites
+are recorded in the [Ares board](backlog.md).
+
 ## Licence
 
 MIT OR Apache-2.0.

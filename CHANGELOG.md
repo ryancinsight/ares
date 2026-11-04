@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.0] - Unreleased
+
+### Breaking
+
+- [major] `TractionBoundary` retains its validated coordinates by immutable
+  borrow. Replace `boundary.add_consistent_loads(&nodes, &mut loads)` with
+  `boundary.add_consistent_loads(&mut loads)`. Keep the coordinates alive and
+  immutable while using the boundary; after changing geometry, construct a
+  new boundary with `try_new`. The workspace components move together to
+  0.3.0; external provider requirements and lock records stay unchanged.
+- [major] `facet_measure` and `TractionBoundary::try_new` reject `D = 0` at
+  compilation, including empty boundaries. Positive dimensions remain generic.
+
+### Fixed
+
+- A validated boundary cannot assemble onto a foreign coordinate array. The
+  former replacement-array argument allowed an out-of-bounds panic with fewer
+  nodes and silently zeroed traction on collapsed replacement geometry. Load
+  shape errors now refer to the retained domain and leave all loads unchanged.
+
+### Release status
+
+- Source validation does not establish registry compatibility. The normalized
+  0.2.0 baseline fails its generic material oracle to compile: published
+  Proteus 0.1.1 uses Eunomia 0.10 while Ares uses 0.12. Compatible provider
+  publication/adoption and complete component package qualification remain
+  prerequisites; see the [active board](backlog.md).
+
 ## [0.2.0] - Unreleased
 
 ### Changed

@@ -45,8 +45,19 @@ impl<T, const D: usize> TractionFacet<T, D> {
 /// form of the cross-product magnitude that gives a triangle's area and the
 /// edge-length that gives a segment's, so one expression covers both
 /// dimensions instead of a match on `D`.
+///
+/// # Panics
+///
+/// Does not panic at runtime. `D = 0` fails the structural const assertion
+/// at compilation. A facet requires a positive ambient dimension:
+///
+/// ```compile_fail
+/// let nodes: [[f64; 0]; 0] = [];
+/// let _ = ares::boundary::facet_measure(&nodes);
+/// ```
 #[must_use]
 pub fn facet_measure<T: RealField, const D: usize>(nodes: &[[T; D]; D]) -> T {
+    const { assert!(D >= 1, "a facet requires a positive ambient dimension") }
     let edges = D - 1;
 
     // Column `i` is `x_{i+1} - x_0`; only the leading `edges` columns are used.
@@ -88,13 +99,69 @@ pub fn facet_measure<T: RealField, const D: usize>(nodes: &[[T; D]; D]) -> T {
 }
 
 /// A validated set of traction facets on one mesh.
+///
+/// The coordinate domain stays attached to the validation. Assembly cannot
+/// substitute a shorter or geometrically different node slice:
+///
+/// ```compile_fail
+/// use ares::{TractionBoundary, TractionFacet};
+/// let nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+/// let facets = [TractionFacet::new([0, 1], [2.0, 0.0])];
+/// let boundary = TractionBoundary::try_new(&facets, &nodes).unwrap();
+/// let foreign = [[0.0_f64, 0.0]];
+/// let mut loads = [0.0; 2];
+/// boundary.add_consistent_loads(&foreign, &mut loads).unwrap();
+/// ```
+///
+/// A live boundary also prevents coordinate mutation:
+///
+/// ```compile_fail
+/// use ares::{TractionBoundary, TractionFacet};
+/// let mut nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+/// let facets = [TractionFacet::new([0, 1], [2.0, 0.0])];
+/// let boundary = TractionBoundary::try_new(&facets, &nodes).unwrap();
+/// nodes[1][0] = 0.0;
+/// let mut loads = [0.0; 4];
+/// boundary.add_consistent_loads(&mut loads).unwrap();
+/// ```
+///
+/// The coordinates must outlive their validated boundary:
+///
+/// ```compile_fail
+/// use ares::{TractionBoundary, TractionFacet};
+/// let facets = [TractionFacet::new([0, 1], [2.0_f64, 0.0])];
+/// let boundary;
+/// {
+///     let nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+///     boundary = TractionBoundary::try_new(&facets, &nodes).unwrap();
+/// }
+/// let mut loads = [0.0; 4];
+/// boundary.add_consistent_loads(&mut loads).unwrap();
+/// ```
+///
+/// Even an empty boundary requires a positive ambient dimension:
+///
+/// ```compile_fail
+/// let facets: [ares::TractionFacet<f64, 0>; 0] = [];
+/// let nodes: [[f64; 0]; 0] = [];
+/// let _ = ares::TractionBoundary::try_new(&facets, &nodes);
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub struct TractionBoundary<'bc, T, const D: usize> {
     facets: &'bc [TractionFacet<T, D>],
+    nodes: &'bc [[T; D]],
 }
 
 impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
-    /// Validate facets against a mesh's nodes.
+    /// Validate and immutably borrow the facets and their coordinate domain.
+    ///
+    /// Reconstruct the boundary to load changed geometry. Coordinates and
+    /// facets cannot be mutated while the boundary still uses them.
+    ///
+    /// # Panics
+    ///
+    /// Does not panic at runtime. `D = 0` fails the structural const assertion
+    /// at compilation, including when the facet slice is empty.
     ///
     /// # Errors
     ///
@@ -103,8 +170,14 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
     /// otherwise contribute a load that is silently zero or infinite.
     pub fn try_new(
         facets: &'bc [TractionFacet<T, D>],
-        nodes: &[[T; D]],
+        nodes: &'bc [[T; D]],
     ) -> Result<Self, InvalidBoundary> {
+        const {
+            assert!(
+                D >= 1,
+                "a traction boundary requires a positive ambient dimension"
+            );
+        }
         for (facet, description) in facets.iter().enumerate() {
             for (position, node) in description.nodes.iter().enumerate() {
                 if *node >= nodes.len() {
@@ -129,7 +202,7 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
                 return Err(InvalidBoundary::DegenerateFacet { facet });
             }
         }
-        Ok(Self { facets })
+        Ok(Self { facets, nodes })
     }
 
     /// The facets, in the order given.
@@ -161,13 +234,10 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
     ///
     /// # Errors
     ///
-    /// Returns [`MisshapedLoad`] when `loads` is not `nodes.len() * D` long.
-    pub fn add_consistent_loads(
-        &self,
-        nodes: &[[T; D]],
-        loads: &mut [T],
-    ) -> Result<(), MisshapedLoad> {
-        let expected = nodes.len() * D;
+    /// Returns [`MisshapedLoad`] when `loads` is not the retained coordinate
+    /// count times `D` long. Rejection leaves every load unchanged.
+    pub fn add_consistent_loads(&self, loads: &mut [T]) -> Result<(), MisshapedLoad> {
+        let expected = self.nodes.len() * D;
         if loads.len() != expected {
             return Err(MisshapedLoad {
                 expected,
@@ -184,7 +254,7 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
         for facet in self.facets {
             let mut coordinates = [[<T as NumericElement>::ZERO; D]; D];
             for (slot, node) in coordinates.iter_mut().zip(facet.nodes.iter()) {
-                *slot = nodes[*node];
+                *slot = self.nodes[*node];
             }
             let share = facet_measure(&coordinates) / divisor;
             for node in &facet.nodes {
