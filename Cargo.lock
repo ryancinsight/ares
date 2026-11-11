@@ -111,7 +111,7 @@ dependencies = [
 [[package]]
 name = "athena-core"
 version = "0.3.3"
-source = "git+https://github.com/ryancinsight/athena#ae130d923beb1c16cefb75f50c8d0df7fe2a0507"
+source = "git+https://github.com/ryancinsight/athena#314043e3a18dc176dae4738b7d9325d1205e4757"
 dependencies = [
  "eunomia",
 ]
@@ -119,7 +119,7 @@ dependencies = [
 [[package]]
 name = "athena-leto"
 version = "0.3.3"
-source = "git+https://github.com/ryancinsight/athena#ae130d923beb1c16cefb75f50c8d0df7fe2a0507"
+source = "git+https://github.com/ryancinsight/athena#314043e3a18dc176dae4738b7d9325d1205e4757"
 dependencies = [
  "athena-core",
  "eunomia",
@@ -500,8 +500,8 @@ checksum = "1033caf0b349c518623b5396bfb2cf0bddf44f0306d543a250e5743297aafd10"
 
 [[package]]
 name = "harmonia"
-version = "0.1.1"
-source = "git+https://github.com/ryancinsight/harmonia#f0ceba6ed8205981f314382da08f059d4bc0743a"
+version = "0.1.4"
+source = "git+https://github.com/ryancinsight/harmonia#59aaa2c8d5619ab4a8ff4c1ad95026bedb5d7e44"
 dependencies = [
  "aequitas",
  "athena-core",
@@ -581,7 +581,7 @@ checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 [[package]]
 name = "horae-time"
 version = "0.2.2"
-source = "git+https://github.com/ryancinsight/horae#62460319d98a4d265b5aeca042df0dc1a973bd68"
+source = "git+https://github.com/ryancinsight/horae#765a355a3a7847acf308255f95b9e9d3d68f0945"
 dependencies = [
  "aequitas",
  "eunomia",
