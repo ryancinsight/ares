@@ -78,8 +78,8 @@ jobs:
         run: cargo check --locked --all-targets --all-features
 
   # Public-surface compatibility through the stack's one gate (atlas ADR 0035).
-  # Both crates are published, so both are gated; a per-repo hand-rolled job
-  # would be the duplication defect that shared workflow exists to prevent.
+  # Compare the committed dependency graphs when old Git requirements
+  # no longer resolve at provider defaults.
   semver-core:
     name: SemVer gate (ares-solid)
     uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
@@ -91,19 +91,23 @@ jobs:
 
   semver-athena:
     name: SemVer gate (ares-operator)
-    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@7a5a1036973b81dee0e20321942ce0c7e2bf9f9b
     with:
       package: ares-operator
       rust-toolchain: 1.97.0
+      dependency-contract: locked
+      atlas-ref: 7a5a1036973b81dee0e20321942ce0c7e2bf9f9b
     permissions:
       contents: read
 
   semver-harmonia:
     name: SemVer gate (ares-coupling)
-    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@50802ef4c975bdb1e668b94a700d8310f0348e9c
+    uses: ryancinsight/atlas/.github/workflows/semver-gate.yml@7a5a1036973b81dee0e20321942ce0c7e2bf9f9b
     with:
       package: ares-coupling
       rust-toolchain: 1.97.0
+      dependency-contract: locked
+      atlas-ref: 7a5a1036973b81dee0e20321942ce0c7e2bf9f9b
     permissions:
       contents: read
 
