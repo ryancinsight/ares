@@ -8,7 +8,8 @@
 //! equal split from an unequal one with the same total, so the moment is what
 //! fixes the distribution.
 
-use ares::{InvalidBoundary, TractionBoundary, TractionFacet};
+use ares::{InvalidBoundary, MisshapedLoad, TractionBoundary, TractionFacet};
+use eunomia::RealField;
 
 // ---------------------------------------------------------------------------
 // Neumann: consistent nodal loads
@@ -41,7 +42,7 @@ fn a_traction_carries_its_exact_resultant_force() {
 
     let mut loads = [0.0_f64; 8];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     for component in 0..2 {
@@ -68,7 +69,7 @@ fn a_traction_carries_its_exact_resultant_moment() {
 
     let mut loads = [0.0_f64; 8];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     // Scalar moment about the origin: sum of (x f_y - y f_x).
@@ -101,7 +102,7 @@ fn a_three_dimensional_traction_carries_its_exact_resultant() {
 
     let mut loads = [0.0_f64; 12];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     let total: f64 = (0..4).map(|node| loads[node * 3 + 1]).sum();
@@ -125,12 +126,12 @@ fn a_traction_scales_with_the_facet_rather_than_the_node_count() {
     let mut short_loads = [0.0_f64; 4];
     TractionBoundary::try_new(&facets, &short)
         .expect("valid")
-        .add_consistent_loads(&short, &mut short_loads)
+        .add_consistent_loads(&mut short_loads)
         .expect("well-shaped");
     let mut long_loads = [0.0_f64; 4];
     TractionBoundary::try_new(&facets, &long)
         .expect("valid")
-        .add_consistent_loads(&long, &mut long_loads)
+        .add_consistent_loads(&mut long_loads)
         .expect("well-shaped");
 
     let short_total: f64 = (0..2).map(|node| short_loads[node * 2]).sum();
@@ -152,7 +153,7 @@ fn tractions_accumulate_rather_than_overwrite() {
 
     let mut loads = [0.0_f64, 7.0, 0.0, 0.0, 0.0, 0.0];
     boundary
-        .add_consistent_loads(&nodes, &mut loads)
+        .add_consistent_loads(&mut loads)
         .expect("well-shaped");
 
     // Node 1 is shared, so it takes half of each facet: a full facet's worth.
@@ -181,4 +182,91 @@ fn an_invalid_traction_boundary_is_rejected() {
         TractionBoundary::try_new(&facets, &nodes).expect_err("the facet has no length"),
         InvalidBoundary::DegenerateFacet { facet: 0 }
     );
+}
+
+// ---------------------------------------------------------------------------
+// Assembly reads the nodes validation accepted (ADR 0002)
+// ---------------------------------------------------------------------------
+
+/// A length-2 edge under traction `(3, 1)`. Measure 2 shared by 2 nodes gives
+/// each node exactly the traction, so every expected load is a small integer,
+/// exact at `f32` and `f64`.
+fn validated_edge<T: RealField>() -> ([[T; 2]; 2], [TractionFacet<T, 2>; 1]) {
+    let zero = T::from_f64(0.0);
+    let nodes = [[zero, zero], [T::from_f64(2.0), zero]];
+    let facets = [TractionFacet::new(
+        [0, 1],
+        [T::from_f64(3.0), T::from_f64(1.0)],
+    )];
+    (nodes, facets)
+}
+
+fn assert_a_one_node_slice_cannot_reach_assembly<T: RealField>() {
+    let (zero, one, three) = (T::from_f64(0.0), T::from_f64(1.0), T::from_f64(3.0));
+    let (nodes, facets) = validated_edge::<T>();
+
+    // A one-node slice can be named only at validation, which rejects it.
+    assert_eq!(
+        TractionBoundary::try_new(&facets, &nodes[..1])
+            .expect_err("invariant: node 1 is beyond a one-node slice"),
+        InvalidBoundary::NodeOutOfRange {
+            facet: 0,
+            position: 1,
+            node: 1,
+            nodes: 1,
+        }
+    );
+
+    let boundary =
+        TractionBoundary::try_new(&facets, &nodes).expect("invariant: the edge has length 2");
+    // A load vector shaped for one node is refused before any write.
+    let mut short = [one; 2];
+    assert_eq!(
+        boundary.add_consistent_loads(&mut short),
+        Err(MisshapedLoad {
+            expected: 4,
+            found: 2,
+        })
+    );
+    assert_eq!(short, [one; 2]);
+
+    let mut loads = [zero; 4];
+    boundary
+        .add_consistent_loads(&mut loads)
+        .expect("invariant: four entries hold two 2-D nodes");
+    assert_eq!(loads, [three, one, three, one]);
+}
+
+#[test]
+fn a_one_node_slice_cannot_reach_assembly() {
+    assert_a_one_node_slice_cannot_reach_assembly::<f32>();
+    assert_a_one_node_slice_cannot_reach_assembly::<f64>();
+}
+
+fn assert_coincident_nodes_cannot_zero_a_traction<T: RealField>() {
+    let (zero, one, three) = (T::from_f64(0.0), T::from_f64(1.0), T::from_f64(3.0));
+    let (nodes, facets) = validated_edge::<T>();
+
+    // Coincident nodes span no length, so validation refuses them.
+    let coincident = [[zero, zero]; 2];
+    assert_eq!(
+        TractionBoundary::try_new(&facets, &coincident)
+            .expect_err("invariant: coincident nodes span no length"),
+        InvalidBoundary::DegenerateFacet { facet: 0 }
+    );
+
+    // Assembly measures the validated edge, so the full resultant arrives.
+    let boundary =
+        TractionBoundary::try_new(&facets, &nodes).expect("invariant: the edge has length 2");
+    let mut loads = [zero; 4];
+    boundary
+        .add_consistent_loads(&mut loads)
+        .expect("invariant: four entries hold two 2-D nodes");
+    assert_eq!(loads, [three, one, three, one]);
+}
+
+#[test]
+fn coincident_nodes_cannot_zero_a_traction() {
+    assert_coincident_nodes_cannot_zero_a_traction::<f32>();
+    assert_coincident_nodes_cannot_zero_a_traction::<f64>();
 }

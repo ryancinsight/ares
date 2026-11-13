@@ -119,7 +119,7 @@ fn conjugate_gradients_converges_on_the_constrained_operator() {
     let boundary = TractionBoundary::try_new(&facets, &nodes).expect("valid facet");
     let mut external = [0.0_f64; 8];
     boundary
-        .add_consistent_loads(&nodes, &mut external)
+        .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
     let mut load = [0.0_f64; 8];

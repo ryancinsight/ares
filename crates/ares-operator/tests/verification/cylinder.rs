@@ -144,7 +144,7 @@ fn solve_field(annulus: &Annulus) -> Vec<f64> {
     let boundary = TractionBoundary::try_new(&facets, &annulus.nodes).expect("valid facets");
     let mut external = vec![0.0_f64; annulus.degrees_of_freedom()];
     boundary
-        .add_consistent_loads(&annulus.nodes, &mut external)
+        .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
     solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external)

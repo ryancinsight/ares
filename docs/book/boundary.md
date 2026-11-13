@@ -25,12 +25,17 @@ let facets = [TractionFacet::new([1, 2], [1.0e6_f64, 0.0])];
 let boundary = TractionBoundary::try_new(&facets, &nodes).expect("a valid facet");
 
 let mut loads = [0.0_f64; 8];
-boundary.add_consistent_loads(&nodes, &mut loads).expect("well-shaped");
+boundary.add_consistent_loads(&mut loads).expect("well-shaped");
 
 // The resultant is traction times edge length, split between the two nodes.
 let total: f64 = (0..4).map(|n| loads[n * 2]).sum();
 assert!((total - 1.0e6).abs() < 1.0);
 ```
+
+The boundary keeps the nodes `try_new` validated, so assembly takes only the
+load vector and cannot measure facets on any other geometry. To load moved
+nodes, validate a new boundary on them
+([ADR 0002](https://github.com/ryancinsight/ares/blob/main/docs/adr/0002-traction-coordinate-domain.md)).
 
 A facet of a `D`-simplex is a `(D - 1)`-simplex with exactly `D` nodes — an edge
 in 2-D, a triangle in 3-D — so both arrays are `D` long and the shape needs no

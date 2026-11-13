@@ -10,3 +10,4 @@
 | ADR | Title | Status |
 | --- | ----- | ------ |
 | [0001](0001-athena-seam-as-a-separate-crate.md) | The Athena seam is a separate crate | Accepted |
+| [0002](0002-traction-coordinate-domain.md) | A traction boundary keeps the nodes it validated | Accepted |
