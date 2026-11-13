@@ -35,6 +35,16 @@ ladder. Evidence below was read at `basis:` unless stated otherwise.
 - Acceptance: every `name` under `crates/*/Cargo.toml` appears in the README table (`cargo metadata --no-deps` names compared with the table rows); `git grep -n 'ares-coupling' README.md` returns the row.
 - Next step: add the row, then run the docs and link checks of the committed gate.
 
+<a id="ARES-FACET-DIM-ZERO"></a>
+## ARES-FACET-DIM-ZERO — Reject a zero dimension in facet_measure at compile time [patch] — todo
+- priority: correctness; needs: none; basis: 0ef6b26dc579b47ada1e8a59860ee7a56fd42ff2
+- scope: `crates/ares/src/boundary/traction.rs`, `crates/ares/tests/oracles/neumann.rs`
+- Defect (read at basis, not run): public `facet_measure<T, const D: usize>` computes `let edges = D - 1;` (traction.rs:50) with no `D >= 1` guard. At `D = 0` a debug build panics on the subtraction; a release build wraps `edges` to `usize::MAX`, and the Gram loop then indexes the zero-row `gram` and panics. `TractionBoundary` reaches the function at :124 and :189, and `ares-coupling` reaches it at interface.rs:236.
+- Outcome: `D = 0` is rejected at compile time by an inline `const { assert!(D >= 1, ...) }` (or a dimension bound with the same effect) on `facet_measure` and the `TractionBoundary` constructors. No runtime path panics on the dimension.
+- Acceptance: a `compile_fail` doctest instantiates `facet_measure` at `D = 0`, and its marker-free copy fails with the const-evaluation error. The existing 2-D and 3-D measure oracles keep their assertions. This is not an API break, because no valid instantiation changes (confirm with the SemVer gate).
+- Prior work: PR #73 (`refs/pull/73/head`) carried `D >= 1` assertions; ARES-TRACTION-COORDS left them out of scope.
+- Next step: confirm the panic on the basis with a `D = 0` probe in debug and release, then add the assertion and the doctest.
+
 <a id="ARES-PACKAGE-CLOSURE"></a>
 ## ARES-PACKAGE-CLOSURE — Qualify packaged builds against registry providers [patch] — blocked
 - priority: verification; needs: none (external providers); basis: ab7710580497f09222f3bff6b7518df2e69259e8
