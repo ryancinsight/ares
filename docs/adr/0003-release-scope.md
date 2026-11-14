@@ -37,30 +37,30 @@ coupling API that 1.0 freezes and ADR 0059 is still Proposed.
 | --- | --- | --- |
 | ares-solid | Displacement gradient, small strain, symmetric tensor algebra | delivered (`oracles::kinematics`) |
 | ares-solid | Cauchy stress, mean and deviatoric stress, typed `J2`, von Mises | delivered (`oracles::constitutive`) |
-| ares-solid | Principal stresses | in scope, `M-vessel-wall`; the crate README claims it at base |
+| ares-solid | Principal stresses | in scope, `M-vessel-wall`: test `constitutive::principal_stresses_of_pure_shear_are_plus_and_minus_the_shear_stress`; the crate README claims it at base |
 | ares-solid | Isotropic Hooke over `proteus` moduli; no material constants | delivered (`constitutive::the_crate_names_no_material`) |
 | ares-solid | Equilibrium residual, matrix-free internal forces | delivered (`oracles::patch_test`, `oracles::assembled_operator`) |
 | ares-solid | Linear simplices in 2-D and 3-D, exact one-point integration | delivered (`oracles::element_*`); for linear simplices, ADR 0057's isoparametric mapping and Gauss quadrature reduce to this |
 | ares-solid | Higher-order elements, general quadrature rules | non-goal |
 | ares-solid | Mesh validation over a borrowed `SimplexMesh` | delivered (`oracles::mesh_validation`) |
-| ares-solid | Gaia tetrahedral mesh as solve input | in scope, `M-vessel-wall` |
+| ares-solid | Gaia tetrahedral mesh as solve input | in scope, `M-vessel-wall`: example `vessel_wall` |
 | ares-solid | Consistent body-force loads | delivered (`verification::mms`) |
 | ares-solid | Typed Dirichlet conditions | delivered (`oracles::dirichlet`) |
-| ares-solid | Consistent traction loads on validated nodes (ADR 0002) | delivered (`oracles::neumann`) |
-| ares-solid | `D >= 1` contract on traction facets | in scope, `M-vessel-wall` (board `ARES-FACET-DIM-ZERO`) |
+| ares-solid | Consistent traction loads on validated nodes (ADR 0002) | delivered (`oracles::neumann`); its undocumented `D = 0` panic is the verification item `ARES-FACET-DIM-ZERO` (`compile_fail` doctests) |
 | ares-solid | Moirai parallel assembly, Mnemosyne arenas, Themis placement | non-goal (ADR 0057 lists them as optional; no measured need) |
 | ares-operator | Athena `LinearOperator` over Leto, conjugate-gradient solve | delivered (`ares-operator` `operator` tests) |
 | ares-operator | Lamé cylinder, cantilever, manufactured solution at `O(h^2)`, energy identity | delivered (`verification::*`); `f32` for accuracy and identity, `f64` for rate studies |
-| ares-operator | Solve on a Hephaestus device | in scope, `M-device-solve` |
+| ares-operator | Solve on a Hephaestus device | in scope, `M-device-solve`: example `device_cylinder`, test `the_device_solve_matches_the_host_solve` |
 | ares-operator | Preconditioner selection, solver policy | non-goal (Athena owns it; book chapter 8) |
-| ares-coupling | One-way quasi-static traction partition, conformity rejection, work identity, zero-traction null case | delivered (`coupling` tests) |
-| ares-coupling | Cylinder under coupled pressure; interface built from a Gaia boundary | in scope, `M-vessel-wall` |
-| ares-coupling | Rigid-body invariance of the coupled configuration (ADR 0059 oracle) | in scope, `M-vessel-wall` (verification) |
-| ares-coupling | `Stress`-typed traction, `Length`-typed displacement, interface stress diagnostic, marshalling round trip | in scope, `M-typed-exchange` |
+| ares-coupling | One-way quasi-static traction partition, conformity rejection, work identity, zero-traction null case | delivered (`coupling` tests, `f64` only) |
+| ares-coupling | Cylinder under coupled pressure, interface from a Gaia boundary, rigid-translation invariance, `f32` and `f64` (ADR 0059 oracles) | in scope, `M-vessel-wall`: example `vessel_wall` self-checks each, at both scalars |
+| ares-coupling | `Stress`-typed traction, `Length`-typed displacement, marshalling round trip | in scope, `M-typed-exchange`: test `a_traction_envelope_round_trips_through_export_and_advance` |
+| ares-coupling | Interface stress diagnostic envelope | in scope, `M-typed-exchange`: example `typed_exchange` checks it against Hooke of the solved strain |
 | ares-coupling | Two-way coupling, ALE, non-conforming transfer, fluid traction extraction | non-goal (ADR 0059) |
 | workspace | Book, eleven chapters | delivered; `mdbook test` is a 1.0 standing condition |
-| workspace | Publication of `ares-solid` | in scope, 1.0, behind release authority (atlas promotion step A9) |
-| workspace | Publication of `ares-operator` and `ares-coupling` | non-goal for 1.0 while `harmonia` is `publish = false` (`gap_audit.md`) |
+| workspace | Publication of `ares-solid` | 1.0 standing condition (`cargo publish --dry-run`); the release itself needs release authority (atlas promotion step A9) |
+| workspace | Publication of `ares-coupling` | non-goal for 1.0: it depends on `harmonia`, which is `publish = false` (`gap_audit.md`) |
+| workspace | Publication of `ares-operator` | non-goal for 1.0 (veto point 5); whether its `athena` and `leto` providers are on crates.io was not looked up |
 | workspace | Dynamics, finite deformation, plasticity, viscoelasticity, contact, fracture, fatigue, anisotropy, composites, thermal expansion, buckling | non-goal (later phases, each with its own charter) |
 | workspace | CFDrs first-consumer integration; Kwavers migration | outside this repository (atlas epic; Phase 1) |
 
@@ -95,8 +95,8 @@ coupling API that 1.0 freezes and ADR 0059 is still Proposed.
 
 ## Consequences
 
-- Every open item carries `milestone:`. Each feature item names the exit check
-  it serves.
+- Open items carry `milestone:`; `ARES-README-CRATE-TABLE` does not, because
+  PR #84 deletes its block. Each feature item names the exit check it serves.
 - A milestone closes when its exit checks pass at a fetched `main` commit.
   Releases stay behind release authority.
 - Removing, weakening or moving an exit check, or splitting a milestone, needs
@@ -111,7 +111,8 @@ Scope that no source determines, recorded with the recommended option:
    requires backend neutrality; book chapter 8 defers assembled-matrix work.
 3. Typed envelope exchange is 1.0 scope while atlas ADR 0059 is Proposed.
 4. The optional Moirai, Mnemosyne and Themis substrate is not 1.0 scope.
-5. 1.0 publishes `ares-solid` only.
+5. 1.0 publishes `ares-solid` only. `ares-operator` and `ares-coupling` then
+   need `publish = false` in their manifests, which an item files.
 
 ## Overturning evidence
 

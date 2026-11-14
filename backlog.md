@@ -4,15 +4,16 @@ Open items in priority order. The meta item
 `ATLAS-ARES-PROMOTION-2026-09-03` (atlas `backlog.md#ares-promotion`) owns
 creation, registration and first publication of the repository and is not
 copied here. The ladder below follows
-[ADR 0003](docs/adr/0003-release-scope.md), and every item carries
-`milestone:`. Evidence below was read at `basis:` unless stated otherwise.
+[ADR 0003](docs/adr/0003-release-scope.md); items carry `milestone:` except
+`ARES-README-CRATE-TABLE`, which PR #84 deletes. Evidence below was read at
+`basis:` unless stated otherwise.
 
 <a id="M-vessel-wall"></a>
 ## M-vessel-wall — 0.3.0
 - Outcome: a user meshes a thick-walled vessel in Gaia, loads its inner wall with pressure through the Harmonia partition, solves through Athena on the host, and reads displacement and principal stresses.
-- exit: solve a Gaia-meshed vessel wall to the Lamé displacement — `cargo run --locked -p ares-coupling --example vessel_wall`. Self-checking: it exits nonzero when the radial displacement leaves the discretisation bound derived in its source, or when interface work differs from twice the strain energy beyond rounding.
+- exit: solve a Gaia-meshed vessel wall to the Lamé displacement — `cargo run --locked -p ares-coupling --example vessel_wall`. Self-checking: it exits nonzero when the radial displacement leaves the discretisation bound derived in its source, when interface work differs from twice the strain energy beyond rounding, or when a rigid translation of the configuration changes interface work or stress; it runs at `f32` and `f64`.
 - exit: compute principal stresses of a Cauchy stress — `cargo nextest run --locked --no-tests=fail -p ares-solid --test oracles -E 'test(=constitutive::principal_stresses_of_pure_shear_are_plus_and_minus_the_shear_stress)'`.
-- standing: no open `correctness` item; the stack conformance scan's installed-state assertions pass for ares.
+- standing: no open `correctness` item; the stack conformance scan's installed-state assertions pass for ares; the ares conformance baseline total stays at or below 1 (atlas `scripts/conformance-baseline.json`).
 - needs: none.
 - Non-goals: device backends, typed field envelopes, preconditioning, two-way coupling.
 
@@ -21,7 +22,7 @@ copied here. The ladder below follows
 - Outcome: a user solves the same elastostatic problem on a Hephaestus device and gets the host answer.
 - exit: solve the Lamé cylinder on a Hephaestus device — `cargo run --locked -p ares-operator --example device_cylinder`. Self-checking against the Lamé closed form, and against the host solve within the reduction-order bound derived in its source.
 - exit: match the host matrix-free solve on a device — `cargo nextest run --locked --no-tests=fail -p ares-operator --test operator -E 'test(=the_device_solve_matches_the_host_solve)'`.
-- standing: no open `correctness` item.
+- standing: no open `correctness` item; the ares conformance baseline total stays at or below 1.
 - needs: M-vessel-wall.
 - Non-goals: device-resident element kernels, preconditioner selection.
 
@@ -29,9 +30,9 @@ copied here. The ladder below follows
 ## M-typed-exchange — 1.0.0
 - Outcome: a fluid partition exchanges `Stress`-typed traction and `Length`-typed displacement envelopes with Ares, and the exchange round-trips exactly.
 - exit: round-trip a traction envelope through export and advance — `cargo nextest run --locked --no-tests=fail -p ares-coupling --test coupling -E 'test(=a_traction_envelope_round_trips_through_export_and_advance)'`.
-- exit: exchange typed envelopes with a pressurised strip — `cargo run --locked -p ares-coupling --example typed_exchange`. Self-checking: the round trip is exact, and the work identity holds.
-- standing: no open `correctness` item; `cargo semver-checks` passes for `ares-solid` against its released baseline; `cargo publish --dry-run --locked -p ares-solid` passes against registry providers; `cargo test --doc --locked`, `cargo build --examples --locked` and `mdbook test docs/book` pass.
-- needs: M-device-solve.
+- exit: exchange typed envelopes with a pressurised strip — `cargo run --locked -p ares-coupling --example typed_exchange`. Self-checking: the round trip is exact, the work identity holds, and the interface stress envelope equals Hooke of the solved strain.
+- standing: no open `correctness` item; the ares conformance baseline total is 0; `cargo semver-checks` passes for `ares-solid` against its released baseline; `cargo publish --dry-run --locked -p ares-solid` passes against registry providers; `cargo test --doc --locked`, `cargo build --examples --locked` and `mdbook test docs/book` pass.
+- needs: M-vessel-wall.
 - Non-goals: two-way coupling, non-conforming transfer, later-phase physics, publishing `ares-operator` or `ares-coupling`.
 
 <a id="ARES-README-CRATE-TABLE"></a>
