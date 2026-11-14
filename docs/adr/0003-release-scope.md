@@ -84,30 +84,31 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
 | ares-coupling | Two-way coupling, ALE, non-conforming transfer, fluid traction extraction | non-goal (ADR 0059) |
 | workspace | Book, eleven chapters; crate READMEs | book delivered; `mdbook test` and the README build are 1.0 standing conditions (`ARES-CRATE-README-DOCS`) |
 | workspace | Publication of `ares-solid`, then `ares-operator` | 1.0 standing condition (`cargo publish --dry-run`, ADR 0001:82-83); the release itself needs release authority |
-| workspace | Publication of `ares-coupling` | outside this repository: follows `harmonia` graduation (ADR 0001 revision) |
+| workspace | Publication of `ares-coupling` | non-goal for 1.0: it depends on `harmonia` (`publish = false`), whose graduation the ADR 0001 revision of 2026-09-04 places outside this repository (`gap_audit.md`) |
 | workspace | Dynamics, finite deformation, plasticity, viscoelasticity, contact, fracture, fatigue, anisotropy, composites, thermal expansion, buckling | non-goal (later phases, each with its own charter) |
 | workspace | CFDrs first-consumer integration; Kwavers migration | outside this repository (atlas epic; Phase 1) |
 
 ## Hypotheses
 
-- **Host device.** athena-hephaestus `CsrOperator` implements `LinearOperator`
-  over `HephaestusBackend<D, V, T>` for `S: SparseOperatorOps<D, T>` and
-  `V: DenseVectorOps<D, T>` (athena 041afcb `operator.rs:67-72`).
-  hephaestus-host implements both for `HostDevice` (hephaestus 742e5fb9
-  `sparse.rs:71`, `dense_vector.rs:124`), and both workspaces pin
-  `hephaestus-core` 0.28.0. Read, not compiled: whether `f32` and `f64` meet
-  both scalar bounds is unchecked. `HostDevice` needs no hardware (its
-  README), so the check never skips. Verification step: the first
-  `M-vessel-wall` item compiles this composition before adding public API.
+- **Host device.** `CsrOperator` needs `SparseOperatorOps<D, T>` and
+  `DenseVectorOps<D, T>` (athena 041afcb `operator.rs:67-72`); hephaestus-host
+  implements both for `HostDevice` (hephaestus 742e5fb9 `sparse.rs:71`,
+  `dense_vector.rs:124`), both on `hephaestus-core` 0.28.0. Not compiled: the
+  `f32` and `f64` scalar bounds are unchecked. `HostDevice` needs no hardware,
+  so the check never skips. Verification step: the first `M-vessel-wall` item
+  compiles this composition before adding public API.
 - **Gaia input.** `TetrahedralMeshBuilder` builds a positively oriented
   `IndexedMesh`. Not yet shown: whether it lends `[T; 3]` coordinates and
-  `[usize; 4]` connectivity or needs a copy into `SimplexMesh` slices.
-  Verification step: read its accessors at the first `M-vessel-wall` item.
-- **Typed envelope.** `FieldEnvelope` carries a Cartesian `GridGeometry`
-  (harmonia 01ebc48 `envelope.rs:42`). A straight strip interface maps to a
-  rank-1 grid with one cell per facet. A curved Gaia interface does not, so
-  `vessel_wall` keeps the flat partition slice. `Substep::new` is `pub(crate)`,
-  so the round trip through `advance` may need an upstream constructor.
+  `[usize; 4]` connectivity or needs a copy into `SimplexMesh` slices; the
+  first `M-vessel-wall` item reads its accessors.
+- **Typed envelope.** `FieldEnvelope` holds one `Quantity` per cell of a
+  Cartesian `GridGeometry` (harmonia 01ebc48 `envelope.rs:42`), so a curved
+  Gaia interface cannot carry one and `vessel_wall` keeps the flat partition
+  slice. Not yet shown: how a `D`-component traction on a straight strip maps
+  onto grid cells under ADR 0059's node-major order (0059:116-117).
+  `Substep::new` is `pub(crate)`, so the round trip may need an upstream
+  constructor. Verification step: the strip test's item fixes the layout
+  before any API.
 
 ## Alternatives rejected
 
@@ -115,8 +116,6 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
   stresses, and nothing would show a path through Gaia or a device.
 - **Device solve as its own later milestone.** It leaves the largest risk
   second and the first milestone short of a named seam.
-- **The typed envelope on the vessel's curved interface.** `GridGeometry`
-  cannot describe it; a strip test crosses the same seam.
 - **Device-resident element kernels instead of CSR.** That puts per-backend
   kernels in a balance package, with no oracle until a host CSR path exists.
 
@@ -145,6 +144,7 @@ Scope that no source determines, recorded with the recommended option:
 
 - `CsrOperator` does not compose with `HostDevice` for an Ares operator. The
   route is revised here before the first milestone closes.
+- No `FieldEnvelope` layout carries a strip's traction. The first milestone's
+  typed-envelope check is then revised here.
 - Atlas ADR 0059 is rejected or reshaped.
-- `harmonia` becomes publishable. Publishing `ares-coupling` then re-enters
-  scope.
+- `harmonia` becomes publishable; publishing `ares-coupling` re-enters scope.
