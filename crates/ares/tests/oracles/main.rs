@@ -30,4 +30,3 @@ mod mesh_validation;
 mod neumann;
 mod patch_test;
 mod support;
-mod workspace_readme;
