@@ -59,6 +59,93 @@ Evidence below was read at `basis:` unless stated otherwise.
 - Acceptance: `git grep -l 'include_str!("../README.md")' -- 'crates/*/src/lib.rs'` lists all 3 crate roots; `cargo test --doc --locked` and `cargo doc --no-deps --locked` pass; `git grep -n '0\.1\.0' -- 'crates/*/README.md'` is empty.
 - Next step: merge each crate root's `//!` overview into its README, then replace it with `#![doc = include_str!("../README.md")]`.
 
+<a id="ARES-SPIKE-HOSTDEVICE-CSR"></a>
+## ARES-SPIKE-HOSTDEVICE-CSR — Spike: does CsrOperator compose with HostDevice at f32 and f64? [patch] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: a scratch crate outside the repository (never committed); the deliverable edits `docs/adr/0003-release-scope.md` only.
+- Question: athena-hephaestus `CsrOperator` (athena 041afcb `operator.rs:67-72`) bounds `V: DenseVectorOps<D, T>`, `S: SparseOperatorOps<D, T, Matrix = M>` and `T: RealField + Pod + eunomia::Pod`; hephaestus-host implements both traits for `HostDevice` (hephaestus 742e5fb9 `sparse.rs:71`, `dense_vector.rs:124`). Read, not compiled. Does the composition compile and solve at `T = f32` and `T = f64` under the `eunomia` 0.12.0 and `leto` requirements `Cargo.toml` pins (athena Cargo.toml:30 and hephaestus Cargo.toml:68 admit `eunomia >=0.10.0, <0.13.0`; hephaestus Cargo.toml:72 enables `leto` features `parallel` and `mnemosyne-memory`)? Does the lock still resolve, and does it add a second copy of any provider?
+- Method: a scratch crate that depends on `athena-hephaestus`, `hephaestus-host` and `hephaestus-core` at those revisions with ares's provider requirements, uploads a small SPD CSR through `CsrOperator::from_parts`, and runs Athena's `Cg` over `HephaestusBackend` on `HostDevice` at both scalars; compiler and resolver output kept verbatim.
+- Evidence budget: one scratch crate, at most 3 build attempts (each varying one hypothesis), one solve per scalar. An unresolved lock is a result: record the exact provider version conflict.
+- Decision deliverable: rewrite the ADR 0003 "Host device" hypothesis in place with the observed result and the dependency set `ARES-HOSTDEVICE-SOLVE` adds; on a failed composition, apply the first overturning-evidence line of the ADR instead. The ADR stays at or under 150 lines and `adr-index.py check --strict` passes. The rewrite removes this ID from the ADR.
+- Next step: add the three Hephaestus crates to the scratch manifest and compile `CsrOperator::from_parts` at `f64`. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-SPIKE-GAIA-ACCESSOR"></a>
+## ARES-SPIKE-GAIA-ACCESSOR — Spike: what does a Gaia tetrahedral mesh lend to SimplexMesh? [patch] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: a scratch crate outside the repository (never committed); the deliverable edits `docs/adr/0003-release-scope.md` only.
+- Question: gaia e36d620 (`gaia-mesh` 0.6.10) `TetrahedralMeshBuilder<T>` (`src/domain/mesh/tetrahedral.rs:109`) wraps an `IndexedMesh` and states positive orientation (read, not compiled). Does its output lend `[T; 3]` coordinates and `[usize; 4]` connectivity as slices `ares::SimplexMesh::try_new` accepts, or is a copy needed? Which accessor yields the inner-wall boundary facets a traction needs, how does the example obtain a thick-walled cylinder (a Gaia generator, or `TetrahedralMeshBuilder` calls), and does it build at `f32` and `f64`? Which dependency form does `ares-coupling` use for `gaia-mesh`?
+- Method: read the Gaia accessors and rustdoc at that revision, then a scratch probe that builds one tetrahedron at both scalars and passes its output to `SimplexMesh::try_new`; compiler output kept verbatim.
+- Evidence budget: one read pass over `src/domain/mesh` and its boundary accessors, one probe crate, at most 3 build attempts.
+- Decision deliverable: rewrite the ADR 0003 "Gaia input" hypothesis in place with the accessor shape and the facet source; a needed copy is stated as living in the example, or an upstream Gaia item is filed. The ADR stays at or under 150 lines and `adr-index.py check --strict` passes. The rewrite removes this ID from the ADR.
+- Next step: read `tetrahedral.rs` and the `IndexedMesh` accessors, then probe a single tetrahedron. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-SPIKE-STRIP-ENVELOPE"></a>
+## ARES-SPIKE-STRIP-ENVELOPE — Spike: how does a strip's traction lay out in a FieldEnvelope? [patch] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: a scratch crate outside the repository (never committed); the deliverable edits `docs/adr/0003-release-scope.md` only.
+- Question: `FieldEnvelope::try_new` takes one `Quantity<T, D>` per cell of a `GridGeometry` and rejects any other count (harmonia 01ebc48 `src/field/envelope.rs:58`); aequitas 75a453a defines `Stress<T>` (`src/systems/si/quantities.rs:81`); `StructuralInterface::read_traction` reads `D` components per facet from a flat slice (`crates/ares-coupling/src/interface.rs:135`). How does a `D`-component traction on the strip fixture's straight interface (`crates/ares-coupling/tests/coupling.rs`, `Fixture`) map onto envelope cells under ADR 0059's node-major order (0059:116-117): one envelope per component, or another shape? Which geometry (shape, spacing, origin, direction) and `Instant` does it carry, and which new `ares-coupling` dependencies follow (`aequitas` moves from dev to normal; `horae` for `Instant`)?
+- Method: read `envelope.rs`, `geometry.rs` and ADR 0059 on the node-major order; a scratch probe builds a `Stress`-typed envelope for a strip fixture's facets and reads its values back into the flat order `read_traction` consumes, comparing element by element.
+- Evidence budget: one read pass, one probe, at most 3 build attempts.
+- Decision deliverable: rewrite the "Typed envelope" hypothesis of ADR 0003 in place with the layout and the signature surface `ARES-STRIP-ENVELOPE-LOAD` implements, or, if no layout carries a strip, apply the ADR's second overturning-evidence line. The ADR stays at or under 150 lines and `adr-index.py check --strict` passes. The rewrite removes this ID from the ADR.
+- Next step: read `GridGeometry::try_new` and its direction-matrix validation, then probe a one-column envelope per component. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-SPIKE-SUBSTEP-ADVANCE"></a>
+## ARES-SPIKE-SUBSTEP-ADVANCE — Spike: does loading a strip need Partition::advance? [patch] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: a scratch crate outside the repository (never committed); the deliverable edits `docs/adr/0003-release-scope.md` and, if an upstream constructor is needed, the harmonia board.
+- Question: `Substep::new` is `pub(crate)` (harmonia 01ebc48 `src/partition/substep.rs:13`) and `StructuralPartition::advance` takes a `Substep` (`crates/ares-coupling/src/partition.rs:236`), while the inherent `solve_for_traction` takes none. Does `a_stress_envelope_loads_a_strip_through_the_partition` need `advance`, or does `solve_for_traction` suffice? Which public path, if any, produces a `Substep` (Harmonia's coupling driver; harmonia `docs/book/partition_substep.md`)? Its answer mostly serves the `M-typed-exchange` round-trip check, which runs `export` and `advance`.
+- Method: read harmonia's driver and the substep book page; a scratch probe drives a stand-in `Partition` through the public driver to a call of `advance`, or fails to construct a `Substep` outside the crate.
+- Evidence budget: one read pass, one probe, at most 3 build attempts.
+- Decision deliverable: rewrite the Substep sentence of the ADR 0003 "Typed envelope" hypothesis in place; name the entry the strip item uses; if a public constructor is needed, file it on the harmonia board naming the `M-typed-exchange` exit check `a_traction_envelope_round_trips_through_export_and_advance`, which needs it. The ADR stays at or under 150 lines and `adr-index.py check --strict` passes. The rewrite removes this ID from the ADR.
+- Next step: read harmonia's driver for every producer of a `Substep`. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-typed-exchange](#M-typed-exchange).
+
+<a id="ARES-PRINCIPAL-STRESSES"></a>
+## ARES-PRINCIPAL-STRESSES — Compute the principal stresses of a Cauchy stress [minor] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: `crates/ares/src/constitutive/stress.rs` (102 lines; a leaf module under `constitutive/` if the method grows past 500), `crates/ares/tests/oracles/constitutive.rs`, `crates/ares/README.md`, `docs/book/stress.md`, `CHANGELOG.md`.
+- Exit check served: compute principal stresses of a general Cauchy stress, `cargo nextest run --locked --no-tests=fail -p ares-solid --test oracles -E 'test(=constitutive::principal_stresses_of_a_rotated_diagonal_stress_are_its_diagonal)'`. At base `git grep -n -i principal_stress 754d6c36f96c1625a93efcd61885c8b9220b0229 -- crates` is empty, so the test is absent and `--no-tests=fail` fails it.
+- Outcome: `CauchyStress<T, D>` returns its `D` principal stresses as `Pressure<T>` in a documented order, generic in `T`, for every `D` the crate supports.
+- Acceptance: the test rotates a diagonal stress by a rotation that leaves all six components nonzero and asserts the returned values equal the diagonal within a bound derived in the test source (rounding of the rotation product and the eigenvalue sensitivity of a symmetric matrix), at `f32` and `f64` through one generic function; it also asserts the documented order and a repeated-eigenvalue input. No fitted tolerance.
+- Next step: derive the eigenvalue method from a source read this session and cite it in the rustdoc, then write the test first. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-STRESS-INVARIANTS"></a>
+## ARES-STRESS-INVARIANTS — Compute the invariants of a symmetric tensor [minor] — todo
+- priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: `crates/ares/src/kinematics/tensor.rs` (181 lines; it holds trace, deviator and `double_dot` only), `crates/ares/tests/oracles/kinematics.rs`, `crates/ares/README.md`, `docs/book/kinematics.md`, `CHANGELOG.md`.
+- Exit check served: compute invariants of a symmetric tensor, `cargo nextest run --locked --no-tests=fail -p ares-solid --test oracles -E 'test(=kinematics::invariants_of_a_rotated_diagonal_tensor_are_its_symmetric_functions)'`. At base `git grep -n 'fn invariants' 754d6c36f96c1625a93efcd61885c8b9220b0229 -- crates` is empty, so the test is absent and `--no-tests=fail` fails it.
+- Outcome: `SymmetricTensor<T, D>` yields `I1`, `I2` and `I3` (ADR 0057:39-40), generic in `T`.
+- Acceptance: the test rotates a diagonal tensor with distinct entries and asserts `I1` the sum, `I2` the sum of pairwise products and `I3` the product of those entries, within bounds derived in the test source from the rounding of the rotation product, at `f32` and `f64` through one generic function.
+- Gap for the lead: ADR 0003:59 lists the invariants "of a symmetric tensor and of stress", but its mapped exit check covers the tensor only, so a stress form has no oracle and is not in this item; adding it needs a revision note on the ADR and a judge verdict.
+- Next step: write the test first, then the three invariants on `SymmetricTensor`. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-HOSTDEVICE-SOLVE"></a>
+## ARES-HOSTDEVICE-SOLVE — Solve the constrained stiffness on the Hephaestus HostDevice [minor] — todo
+- priority: feature; milestone: M-vessel-wall; needs: ARES-SPIKE-HOSTDEVICE-CSR; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: `crates/ares-operator/src/` (a leaf module for CSR assembly and the device solve), `crates/ares-operator/tests/operator.rs`, `crates/ares-operator/Cargo.toml`, `Cargo.toml`, `Cargo.lock`, `docs/adr/0001-athena-seam-as-a-separate-crate.md` (the revision note ADR 0003:43-44 promises in the PR that compiles this route; its :85-87 plans a second `LinearOperator` impl), `docs/book/assembly.md` and `docs/book/solving.md` (both decline an assembled matrix), `crates/ares-operator/README.md`, `CHANGELOG.md`.
+- Exit check served: solve on the Hephaestus host device to the host answer, `cargo nextest run --locked --no-tests=fail -p ares-operator --test operator -E 'test(=the_host_device_solve_matches_the_host_solve)'`; a `HostDevice` dispatch error fails it. At base `git grep -n the_host_device_solve 754d6c36f96c1625a93efcd61885c8b9220b0229 -- crates` is empty, so the test is absent and `--no-tests=fail` fails it.
+- Outcome: `ares-operator` assembles the constrained stiffness as CSR parts, solves through `CsrOperator` on `HostDevice`, and returns the host solve's displacement at `f32` and `f64`; no run skips.
+- Acceptance: the test asserts the device and host displacement fields agree within a bound derived in the test source, through one generic function at both scalars; the host matrix-free solve is the oracle. The first derivation question: two separately terminated Krylov solves may also differ by the convergence tolerance and the operator's conditioning, not only by reduction order.
+- Next step: when the spike lands, write the test first, then the CSR assembly. Split the assembly (checked against the matrix-free action) from the device solve if the delivering PR exceeds the 400-line review budget. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-STRIP-ENVELOPE-LOAD"></a>
+## ARES-STRIP-ENVELOPE-LOAD — Load a strip from a Stress-typed traction envelope [minor] — todo
+- priority: feature; milestone: M-vessel-wall; needs: ARES-SPIKE-STRIP-ENVELOPE, ARES-SPIKE-SUBSTEP-ADVANCE; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: `crates/ares-coupling/src/interface.rs`, `crates/ares-coupling/src/partition.rs`, `crates/ares-coupling/tests/coupling.rs`, `crates/ares-coupling/Cargo.toml`, `Cargo.lock`, `crates/ares-coupling/README.md`, `docs/book/coupling.md`, `CHANGELOG.md`.
+- Exit check served: load a strip from a typed traction envelope, `cargo nextest run --locked --no-tests=fail -p ares-coupling --test coupling -E 'test(=a_stress_envelope_loads_a_strip_through_the_partition)'`. At base `git grep -n a_stress_envelope_loads 754d6c36f96c1625a93efcd61885c8b9220b0229 -- crates` is empty, so the test is absent and `--no-tests=fail` fails it.
+- Outcome: the partition accepts a `Stress`-typed `FieldEnvelope` traction on a strip's interface, in the layout the strip spike fixes, and a traction of another quantity dimension does not compile.
+- Acceptance: the test loads the strip fixture of `tests/coupling.rs` from an envelope with a traction that differs per facet and per component, so a wrong cell order fails it, and asserts its displacement equals the displacement from the equivalent flat slice, exactly when the conversion only copies, otherwise within a bound the layout derives; a `compile_fail` doctest passes a quantity of another dimension. The entry (`advance` or `solve_for_traction`) follows the Substep spike.
+- Next step: when both spikes land, write the test first, then the envelope-to-slice conversion at the partition boundary. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
+<a id="ARES-VESSEL-WALL-EXAMPLE"></a>
+## ARES-VESSEL-WALL-EXAMPLE — Solve a Gaia-meshed vessel wall to the Lame solution on host and device [minor] — todo
+- priority: feature; milestone: M-vessel-wall; needs: ARES-SPIKE-GAIA-ACCESSOR, ARES-PRINCIPAL-STRESSES, ARES-HOSTDEVICE-SOLVE; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
+- scope: `crates/ares-coupling/examples/vessel_wall.rs`, `crates/ares-coupling/Cargo.toml`, `Cargo.toml`, `Cargo.lock`, `README.md`, a book chapter that includes the example source (`docs/book/SUMMARY.md`), `CHANGELOG.md`.
+- Exit check served: solve a Gaia-meshed vessel wall to the Lame solution on host and device, `cargo run --locked -p ares-coupling --example vessel_wall`. At base `git ls-tree -r --name-only 754d6c36f96c1625a93efcd61885c8b9220b0229 | grep -c examples/` prints 0, so the command fails.
+- Outcome: the example meshes a thick-walled vessel in Gaia, loads its inner wall through the partition, solves on the host and on `HostDevice`, and reads displacement and principal stresses.
+- Acceptance: it exits nonzero, at `f32` and `f64`, when the radial displacement or the radial and hoop stresses read as principal stresses leave bounds derived in its source; when interface work differs from twice the strain energy, or a rigid translation changes interface work or stress, beyond derived rounding bounds; or when the `HostDevice` solve differs from the host solve beyond the derived reduction-order bound. The `f32` stress bound is derived in the source from the scalar's epsilon and the mesh error, with no fitted single-mesh tolerance (`crates/ares-operator/tests/verification/cylinder.rs:25-32`, `scalar.rs:18-27`).
+- Gap for the delivering PR, which neither the ladder nor ADR 0003 fixes: the vessel dimensions and loading, the axial constraint that makes a plane-strain closed form apply to a 3-D Gaia mesh, the refinement the `f32` bound uses, and how the `HostDevice` solve receives the partition-built load (`solve_for_traction` is fixed to `Cg::<LetoBackend<T>>` and the partition exposes no load). The existing closed form is 2-D plane strain (`verification/cylinder.rs`); the example header records each choice.
+- Next step: when the spike and both items land, record those choices, write the host check first, then the device and `f32` checks. Split at the 400-line review budget, the Gaia adapter and host Lame check first. Links: [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
+
 <a id="ARES-PACKAGE-CLOSURE"></a>
 ## ARES-PACKAGE-CLOSURE — Qualify packaged builds against registry providers [patch] — blocked
 - priority: verification; milestone: M-vessel-wall; needs: none (external providers); basis: ab7710580497f09222f3bff6b7518df2e69259e8

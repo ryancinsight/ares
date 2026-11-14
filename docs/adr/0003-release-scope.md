@@ -95,20 +95,20 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
   implements both for `HostDevice` (hephaestus 742e5fb9 `sparse.rs:71`,
   `dense_vector.rs:124`), both on `hephaestus-core` 0.28.0. Not compiled: the
   `f32` and `f64` scalar bounds are unchecked. `HostDevice` needs no hardware,
-  so the check never skips. Verification step: the first `M-vessel-wall` item
+  so the check never skips. Verification step: `ARES-SPIKE-HOSTDEVICE-CSR`
   compiles this composition before adding public API.
 - **Gaia input.** `TetrahedralMeshBuilder` builds a positively oriented
   `IndexedMesh`. Not yet shown: whether it lends `[T; 3]` coordinates and
-  `[usize; 4]` connectivity or needs a copy into `SimplexMesh` slices; the
-  first `M-vessel-wall` item reads its accessors.
+  `[usize; 4]` connectivity or needs a copy into `SimplexMesh` slices.
+  Verification step: `ARES-SPIKE-GAIA-ACCESSOR` reads its accessors.
 - **Typed envelope.** `FieldEnvelope` holds one `Quantity` per cell of a
   Cartesian `GridGeometry` (harmonia 01ebc48 `envelope.rs:42`), so a curved
   Gaia interface cannot carry one and `vessel_wall` keeps the flat partition
   slice. Not yet shown: how a `D`-component traction on a straight strip maps
   onto grid cells under ADR 0059's node-major order (0059:116-117).
   `Substep::new` is `pub(crate)`, so the round trip may need an upstream
-  constructor. Verification step: the strip test's item fixes the layout
-  before any API.
+  constructor. Verification steps: `ARES-SPIKE-STRIP-ENVELOPE` fixes the
+  layout before any API; `ARES-SPIKE-SUBSTEP-ADVANCE` decides the constructor.
 
 ## Alternatives rejected
 
