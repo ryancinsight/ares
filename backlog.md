@@ -6,21 +6,10 @@ creation, registration and first publication of the repository and is not
 copied here. Items carry no `milestone:` until `ARES-RELEASE-LADDER` lands a
 ladder. Evidence below was read at `basis:` unless stated otherwise.
 
-<a id="ARES-TRACTION-COORDS"></a>
-## ARES-TRACTION-COORDS — Bind traction loads to the validated coordinates [major] — todo
-- priority: correctness; needs: none; basis: ab7710580497f09222f3bff6b7518df2e69259e8
-- scope: `crates/ares/src/boundary/traction.rs`, its callers `crates/ares-coupling/src/partition.rs`, `crates/ares-operator/tests/`, `crates/ares/tests/oracles/neumann.rs`, `docs/book/boundary.md`, `CHANGELOG.md`, `docs/adr/`
-- Defect (confirmed by reading `traction.rs` at basis): `TractionBoundary::try_new` validates facets against one `nodes` slice and retains only `facets`; `add_consistent_loads(&self, nodes, loads)` takes a second slice. Its shape check uses the replacement's `nodes.len() * D`, then `nodes[*node]` panics when the replacement is shorter than a facet index, and coincident replacement nodes give facet measure 0, return `Ok` and add no load.
-- Outcome: the boundary retains the validated coordinates by immutable borrow and `add_consistent_loads` takes only `loads`; every in-repo caller migrates in the same change, no forwarding method.
-- Acceptance: native tests at f32 and f64 (one-node replacement; coincident replacement) that fail at the basis and pass with the binding; existing force, moment and energy oracles keep their assertions.
-- API: public break, workspace 0.2.0 to 0.3.0 (pre-1.0 leftmost-nonzero rule), so it needs ADR 0002 (absent at basis, `docs/adr` holds only 0001) and a SemVer-gate [major] classification with migration note.
-- Prior work: released PR #73 (`fix/traction-mesh-identity`, kept at `refs/pull/73/head`, label `released`) carries the fix, ADR 0002 and `tests/traction_identity.rs`. Its recorded claims (witnesses fail on unchanged source; 108 tests pass in hosted CI) are not re-run here.
-- Next step: `git fetch origin pull/73/head:fix/traction-mesh-identity`, port onto current main without the PR's own `backlog.md`/`gap_audit.md` (this board replaces them), confirm the witnesses fail at the basis, then run the committed gate. Publication stays held by `ARES-PACKAGE-CLOSURE`.
-
 <a id="ARES-RELEASE-LADDER"></a>
 ## ARES-RELEASE-LADDER — Draft the release scope and milestone ladder [patch] — todo
 - priority: verification; needs: none; basis: ab7710580497f09222f3bff6b7518df2e69259e8
-- scope: `docs/adr/` (release-scope ADR; ADR 0002 is reserved by `ARES-TRACTION-COORDS`), `docs/adr/README.md`, `backlog.md`
+- scope: `docs/adr/` (release-scope ADR; ADR 0002 is taken by the traction coordinate binding), `docs/adr/README.md`, `backlog.md`
 - Outcome: release-scope ADR and milestone ladder per the stack roadmap rule (sprint: roadmap). The ladder opens this board; every item then carries `milestone:`.
 - Acceptance: the ADR records each capability area of `ares-solid`, `ares-operator` and `ares-coupling` as delivered, in scope or a non-goal; each milestone exit check is a runnable check that fails without its feature; an independent judge verdict maps every capability area and open feature item to a check or non-goal.
 - Inputs: `README.md` scope paragraph, atlas ADRs 0055, 0057 and 0059, `docs/book`. Phase 0 non-goals (plasticity, contact, finite deformation, dynamics, fracture) come from the meta item.

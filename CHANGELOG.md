@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0] - Unreleased
+
+### Changed
+
+- [major] `TractionBoundary` keeps the nodes `try_new` validated
+  ([ADR 0002](docs/adr/0002-traction-coordinate-domain.md)). Migrate
+  `boundary.add_consistent_loads(&nodes, &mut loads)` to
+  `boundary.add_consistent_loads(&mut loads)`; keep the nodes alive and
+  unmodified while the boundary is in use, and validate a new boundary after
+  moving them.
+
+### Fixed
+
+- Assembly can no longer read nodes other than the validated ones. A shorter
+  node slice used to panic on an out-of-range index, and coincident nodes used
+  to return `Ok` with no load added.
+
 ## [0.2.0] - Unreleased
 
 ### Changed

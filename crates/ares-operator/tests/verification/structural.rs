@@ -76,7 +76,7 @@ fn tip_deflection(columns: usize, rows: usize) -> f64 {
     let boundary = TractionBoundary::try_new(&facets, &grid.nodes).expect("valid facets");
     let mut external = vec![0.0_f64; grid.degrees_of_freedom()];
     boundary
-        .add_consistent_loads(&grid.nodes, &mut external)
+        .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
     let displacement = solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external);

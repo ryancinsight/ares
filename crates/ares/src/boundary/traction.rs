@@ -87,14 +87,50 @@ pub fn facet_measure<T: RealField, const D: usize>(nodes: &[[T; D]; D]) -> T {
     }
 }
 
-/// A validated set of traction facets on one mesh.
+/// A validated set of traction facets bound to the nodes it was validated on.
+///
+/// The boundary borrows both the facets and the node coordinates, so assembly
+/// reads exactly the geometry that validation accepted (ADR 0002). Assembly
+/// cannot be handed a different node slice:
+///
+/// ```compile_fail
+/// use ares::{MisshapedLoad, TractionBoundary, TractionFacet};
+/// let nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+/// let facets = [TractionFacet::new([0, 1], [2.0, 0.0])];
+/// let Ok(boundary) = TractionBoundary::try_new(&facets, &nodes) else {
+///     return Ok(());
+/// };
+/// let foreign = [[0.0_f64, 0.0]];
+/// let mut loads = [0.0; 2];
+/// boundary.add_consistent_loads(&foreign, &mut loads)?;
+/// Ok::<(), MisshapedLoad>(())
+/// ```
+///
+/// and the validated nodes cannot change while the boundary is in use:
+///
+/// ```compile_fail
+/// use ares::{MisshapedLoad, TractionBoundary, TractionFacet};
+/// let mut nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+/// let facets = [TractionFacet::new([0, 1], [2.0, 0.0])];
+/// let Ok(boundary) = TractionBoundary::try_new(&facets, &nodes) else {
+///     return Ok(());
+/// };
+/// nodes[1] = [0.0, 0.0];
+/// let mut loads = [0.0; 4];
+/// boundary.add_consistent_loads(&mut loads)?;
+/// Ok::<(), MisshapedLoad>(())
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub struct TractionBoundary<'bc, T, const D: usize> {
     facets: &'bc [TractionFacet<T, D>],
+    nodes: &'bc [[T; D]],
 }
 
 impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
-    /// Validate facets against a mesh's nodes.
+    /// Validate facets against a mesh's nodes and keep both borrowed.
+    ///
+    /// Changed geometry needs a new boundary: the borrow forbids mutating
+    /// `nodes` while this one lives.
     ///
     /// # Errors
     ///
@@ -103,7 +139,7 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
     /// otherwise contribute a load that is silently zero or infinite.
     pub fn try_new(
         facets: &'bc [TractionFacet<T, D>],
-        nodes: &[[T; D]],
+        nodes: &'bc [[T; D]],
     ) -> Result<Self, InvalidBoundary> {
         for (facet, description) in facets.iter().enumerate() {
             for (position, node) in description.nodes.iter().enumerate() {
@@ -129,7 +165,7 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
                 return Err(InvalidBoundary::DegenerateFacet { facet });
             }
         }
-        Ok(Self { facets })
+        Ok(Self { facets, nodes })
     }
 
     /// The facets, in the order given.
@@ -161,13 +197,26 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
     ///
     /// # Errors
     ///
-    /// Returns [`MisshapedLoad`] when `loads` is not `nodes.len() * D` long.
-    pub fn add_consistent_loads(
-        &self,
-        nodes: &[[T; D]],
-        loads: &mut [T],
-    ) -> Result<(), MisshapedLoad> {
-        let expected = nodes.len() * D;
+    /// Returns [`MisshapedLoad`], and writes nothing, when `loads` is not the
+    /// validated node count times `D` long.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ares::{MisshapedLoad, TractionBoundary, TractionFacet};
+    /// // A unit edge splits its traction equally between its two nodes.
+    /// let nodes = [[0.0_f64, 0.0], [1.0, 0.0]];
+    /// let facets = [TractionFacet::new([0, 1], [2.0, 0.0])];
+    /// let Ok(boundary) = TractionBoundary::try_new(&facets, &nodes) else {
+    ///     return Ok(());
+    /// };
+    /// let mut loads = [0.0; 4];
+    /// boundary.add_consistent_loads(&mut loads)?;
+    /// assert_eq!(loads, [1.0, 0.0, 1.0, 0.0]);
+    /// Ok::<(), MisshapedLoad>(())
+    /// ```
+    pub fn add_consistent_loads(&self, loads: &mut [T]) -> Result<(), MisshapedLoad> {
+        let expected = self.nodes.len() * D;
         if loads.len() != expected {
             return Err(MisshapedLoad {
                 expected,
@@ -184,7 +233,7 @@ impl<'bc, T: RealField, const D: usize> TractionBoundary<'bc, T, D> {
         for facet in self.facets {
             let mut coordinates = [[<T as NumericElement>::ZERO; D]; D];
             for (slot, node) in coordinates.iter_mut().zip(facet.nodes.iter()) {
-                *slot = nodes[*node];
+                *slot = self.nodes[*node];
             }
             let share = facet_measure(&coordinates) / divisor;
             for node in &facet.nodes {
