@@ -7,6 +7,10 @@ description = "Solid momentum balance: kinematics, stress, equilibrium, and boun
 readme = "README.md"
 keywords = ["solid-mechanics", "elasticity", "finite-element", "multiphysics"]
 categories = ["science", "simulation"]
+# The README check reads the workspace README and its sibling manifests, which
+# sit above this directory; an unpacked registry tarball or a vendored copy has
+# neither, so the check is repository-level and stays out of the package.
+exclude = ["/tests/workspace_readme.rs"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

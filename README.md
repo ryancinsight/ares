@@ -13,10 +13,12 @@ balances (atlas ADR 0055).
 | --- | --- | --- |
 | [`crates/ares`](crates/ares) | `ares-solid` | The domain core. `#![no_std]`, allocation-free, depends only on vocabulary crates. |
 | [`crates/ares-operator`](crates/ares-operator) | `ares-operator` | The Athena linear-operator seam. Links `std` through `leto`. |
+| [`crates/ares-coupling`](crates/ares-coupling) | `ares-coupling` | The Harmonia coupling partition: the structural half of one-way fluid-structure coupling (atlas ADR 0059). Links `std`. |
 
 The split keeps the domain core free of infrastructure — see
 [ADR 0001](docs/adr/0001-athena-seam-as-a-separate-crate.md). Dependencies run
-strictly inward: `ares-operator` depends on `ares`, never the reverse.
+strictly inward: `ares-operator` depends on `ares`, and `ares-coupling` on both,
+never the reverse.
 
 ## Scope
 

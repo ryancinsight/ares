@@ -29,15 +29,6 @@ Evidence below was read at `basis:` unless stated otherwise.
 - needs: M-vessel-wall (it extends the typed traction marshalling the strip test introduces).
 - Non-goals: two-way coupling, non-conforming transfer, accelerator devices, later-phase physics, publishing `ares-coupling` (it follows `harmonia` graduation).
 
-<a id="ARES-README-CRATE-TABLE"></a>
-## ARES-README-CRATE-TABLE — List every workspace crate in the README [patch] — todo
-- priority: verification; milestone: M-vessel-wall; needs: none; basis: ab7710580497f09222f3bff6b7518df2e69259e8
-- scope: `README.md`
-- Defect (read at basis): the `## Crates` table lists `ares-solid` and `ares-operator`; the workspace is `members = ["crates/*"]` and `crates/ares-coupling` exists, which `docs/book/README.md` and `docs/book/stack_position.md` already list as the third crate.
-- Outcome: the README table names all three crates with registry names and the ADR 0001 reference.
-- Acceptance: every `name` under `crates/*/Cargo.toml` appears in the README table (`cargo metadata --no-deps` names compared with the table rows); `git grep -n 'ares-coupling' README.md` returns the row.
-- Next step: add the row, then run the docs and link checks of the committed gate.
-
 <a id="ARES-FACET-DIM-ZERO"></a>
 ## ARES-FACET-DIM-ZERO — Document and statically reject a zero dimension in facet_measure [major] — todo
 - priority: verification; milestone: M-vessel-wall; needs: none; basis: 0ef6b26dc579b47ada1e8a59860ee7a56fd42ff2
