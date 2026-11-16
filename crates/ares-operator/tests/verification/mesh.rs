@@ -125,9 +125,10 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
     let mut workspace = CgWorkspace::new(&backend, dofs).expect("workspace");
     let zero = <T as eunomia::NumericElement>::ZERO;
 
-    // The estimate only sizes `|u|` for the threshold below, so its tolerance
-    // carries no accuracy claim; `sqrt(EPSILON)` keeps it attainable far
-    // beyond the conditioning of these meshes.
+    // The estimate only locates `u` for the residual floor below, so its
+    // tolerance carries no accuracy claim. A floor sized from an estimate that
+    // is too far off makes the second solve fail loudly; it cannot pass one
+    // falsely.
     let estimate =
         ConvergencePolicy::<T>::new(zero, T::EPSILON.sqrt(), SOLVE_BUDGET).expect("valid policy");
     converge(
@@ -138,11 +139,9 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
         estimate,
     );
 
-    let threshold = attainable_threshold(
-        row_terms(mesh),
-        infinity_norm(&operator),
-        euclidean_norm(solution.as_slice().expect("contiguous")),
-    );
+    let threshold = operator
+        .residual_floor(solution.as_slice().expect("contiguous"))
+        .expect("well-shaped");
     let policy = ConvergencePolicy::<T>::new(threshold, zero, SOLVE_BUDGET).expect("valid policy");
     converge(
         &operator,
@@ -186,112 +185,6 @@ fn converge<T: RealScalar + RealField + core::fmt::LowerExp>(
         report.final_residual_norm,
         report.threshold
     );
-}
-
-/// Smallest residual threshold that one evaluation of `b - A u` can certify.
-///
-/// Athena accepts convergence only when the recomputed `|b - A u|_2` meets the
-/// threshold, so a threshold below the rounding error of that evaluation is
-/// unattainable whatever the iteration does. Forming `A u` accumulates
-/// `row_terms - 1` products per entry and the subtraction from `b` adds one
-/// more operation, so the computed residual differs from the exact one by
-/// `|dr| <= gamma_k (|b| + |A| |u|)` componentwise, with
-/// `gamma_k = k u / (1 - k u)`, `k = row_terms` and unit roundoff
-/// `u = EPSILON / 2` (Higham, *Accuracy and Stability of Numerical
-/// Algorithms*, 2nd ed., Lemma 3.1 and §3.5).
-///
-/// Taking 2-norms, `|A|` is symmetric with `||A|||_1 = |A|_inf`, so
-/// `||A| |u||_2 <= |A|_inf |u|_2`, and `|b|_2 = |A u|_2 <= |A|_2 |u|_2 <=
-/// |A|_inf |u|_2`. The floor is therefore at most `2 gamma_k |A|_inf |u|_2`,
-/// which is what this returns. Relative to `|b|` it is `2 gamma_k |A|_inf
-/// |u| / |b|`, a factor bounded by `2 gamma_k kappa(A)`-scale terms: a
-/// relative tolerance fixed at a multiple of `EPSILON` is below it whenever
-/// `|A| |u| / |b|` exceeds that multiple, which the cantilever (about `1e5`)
-/// and the cylinders (about `1e2` to `1e3`) do.
-///
-/// Meeting this threshold makes the normwise backward error
-/// `|b - A u| / (|A| |u|)` at most `2 gamma_k` (Rigal and Gaches; Higham,
-/// Theorem 7.1), so the solution error is bounded by
-/// `2 gamma_k kappa(A)` relative, far below every discretisation error these
-/// oracles measure.
-///
-/// # Limits
-///
-/// `u` is the estimate solve's iterate, whose norm is below the exact
-/// solution's because CG norms grow monotonically from a zero start
-/// (Hestenes and Stiefel 1952, Theorem 6:3). An underestimate only tightens
-/// the threshold, so a poor estimate fails the solve loudly and never passes
-/// it falsely. The bound treats the matrix-free product as an assembled one;
-/// element-matrix formation rounding is outside `row_terms`.
-fn attainable_threshold<T: RealField>(row_terms: usize, operator_norm: T, solution_norm: T) -> T {
-    let terms = T::from_f64(f64::from(
-        u32::try_from(row_terms)
-            .expect("invariant: a 2D mesh row couples far fewer than 2^32 terms"),
-    ));
-    let one = <T as eunomia::NumericElement>::ONE;
-    let unit_roundoff = T::EPSILON / (one + one);
-    let gamma = terms * unit_roundoff / (one - terms * unit_roundoff);
-    (one + one) * gamma * operator_norm * solution_norm
-}
-
-/// Terms accumulated into one entry of `b - A u`.
-///
-/// Each cell sharing a node contributes one row of its `D N` element matrix,
-/// and the subtraction from `b` is one more operation.
-fn row_terms<T: RealField>(mesh: &SimplexMesh<'_, T, 2, 3>) -> usize {
-    let mut cells_at_node = vec![0_usize; mesh.node_count()];
-    for connectivity in mesh.cells() {
-        for &node in connectivity {
-            cells_at_node[node] += 1;
-        }
-    }
-    let busiest = cells_at_node.into_iter().max().unwrap_or(0);
-    busiest * 2 * 3 + 1
-}
-
-/// `|A|_inf`, the largest absolute row sum, from `A`'s columns.
-///
-/// The constrained stiffness is symmetric, so its largest absolute column sum
-/// equals its largest absolute row sum. One application per column is exact
-/// in the entries the solve itself uses, where a power iteration would
-/// approach `|A|_2` from below.
-fn infinity_norm<T: RealScalar + RealField>(operator: &ConstrainedStiffness<'_, T, 2, 3>) -> T {
-    use athena_core::{KrylovBackend, LinearOperator};
-    let backend = LetoBackend::<T>::default();
-    let dofs = operator.dimension();
-    let zero = <T as eunomia::NumericElement>::ZERO;
-    let mut unit = Array1::zeros([dofs]);
-    let mut column = Array1::zeros([dofs]);
-    let mut largest = zero;
-    for index in 0..dofs {
-        {
-            let mut view = backend.view_mut(&mut unit);
-            let slots = view.as_mut_slice().expect("contiguous");
-            slots.fill(zero);
-            slots[index] = <T as eunomia::NumericElement>::ONE;
-        }
-        operator
-            .apply(&backend, backend.view(&unit), backend.view_mut(&mut column))
-            .expect("well-shaped");
-        let sum = column
-            .as_slice()
-            .expect("contiguous")
-            .iter()
-            .fold(zero, |total, entry| total + entry.abs());
-        if sum > largest {
-            largest = sum;
-        }
-    }
-    largest
-}
-
-fn euclidean_norm<T: RealField>(values: &[T]) -> T {
-    values
-        .iter()
-        .fold(<T as eunomia::NumericElement>::ZERO, |total, value| {
-            total + *value * *value
-        })
-        .sqrt()
 }
 
 /// The mass-weighted `L2` norm of a nodal field over a mesh.

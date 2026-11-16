@@ -25,7 +25,8 @@
 //!
 //! The oracles that *do* transfer are the ones with no asymptotic content: a
 //! single-mesh accuracy comparison, and the energy identity, which is exact at
-//! any resolution and so is limited only by the solver's tolerance.
+//! any resolution. What bounds the identity at `f32` is stated at its
+//! assertion; it is not the solver's threshold.
 
 use ares::{PrescribedDisplacement, SimplexMesh, TractionBoundary, TractionFacet};
 
@@ -145,10 +146,26 @@ fn strain_energy_equals_external_work_at_f32() {
         / 2.0;
 
     assert!(strain_energy > 0.0, "the body stored no energy");
+    // The sides differ by `|u . r| / (u . K u)` with `r = b - A u`, as derived
+    // in the `f64` energy oracle, but the residual does not bound it here:
+    // the solve stopped at `|r| = 6.1e2`, so Cauchy-Schwarz gives only
+    // `|u| |r| / (u . K u) = 8e-4` (measured: `|u| = 5.9e-4`,
+    // `u . K u = 435`), above the asserted `1e-4`. The measured difference
+    // is `5.6e-7`.
+    //
+    // Hypothesis, not a derived bound: in exact arithmetic CG's iterate from
+    // a zero start lies in the Krylov space its residual is orthogonal to, so
+    // `u . r = 0`, and what remains is rounding. Here the second solve met
+    // its threshold at once, so `u` is the estimate solve's zero-start
+    // iterate. The `f32` evaluation of `K u` adds at most
+    // `gamma_k |u| . |K| |u| / (u . K u)` relative, with `gamma_k` about
+    // `1.3e-6`; the measured `5.6e-7` lies below that scale. A solver whose
+    // iterate is not orthogonal to its residual could fail this assertion at
+    // the same residual.
     let relative = (strain_energy - external_work).abs() / strain_energy;
     assert!(
         relative < 1e-4,
         "at f32, strain energy {strain_energy:.6e} and external work {external_work:.6e} differ \
-         by {relative:.3e} relative, above the solver tolerance"
+         by {relative:.3e} relative"
     );
 }

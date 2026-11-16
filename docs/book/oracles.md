@@ -177,8 +177,9 @@ here, which holds only in the limit.
 
 That makes it the one oracle separating a solve that is merely *inaccurate*
 from one that is *inconsistent*. A coarse mesh gives a poor cantilever
-deflection while satisfying this identity to the solver tolerance; a defect in
-assembly or in the constrained operator breaks it at any resolution.
+deflection while satisfying this identity to within `|u . r| / (u . K u)`, set by
+the residual `r` the solve stopped at; a defect in assembly or in the
+constrained operator breaks it at any resolution.
 
 ## Scalar generality
 

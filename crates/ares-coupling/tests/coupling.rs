@@ -106,9 +106,9 @@ const SOLVE_BUDGET: usize = 20_000;
 
 /// Run one coupling step and return `(partition, state, traction)`.
 ///
-/// Solves twice. The first solve only sizes `|u|` for
-/// [`attainable_threshold`], so its `sqrt(EPSILON)` tolerance carries no
-/// accuracy claim; the second continues from it to that threshold.
+/// Solves twice. The first solve only locates `u` for
+/// [`ConstrainedStiffness::residual_floor`], so its `sqrt(EPSILON)` tolerance
+/// carries no accuracy claim; the second continues from it to that floor.
 fn couple(
     fixture: &Fixture,
     traction_per_facet: [f64; 2],
@@ -139,75 +139,13 @@ fn couple(
         .solve_for_traction(&mut state, &traction)
         .expect("the estimate solves");
 
-    let threshold = attainable_threshold(
-        row_terms(&fixture.cells, fixture.nodes.len()),
-        infinity_norm(&operator()),
-        state.iter().map(|u| u * u).sum::<f64>().sqrt(),
-    );
+    let threshold = operator().residual_floor(&state).expect("well-shaped");
     let mut coupled =
         partition(ConvergencePolicy::new(threshold, 0.0, SOLVE_BUDGET).expect("valid policy"));
     coupled
         .solve_for_traction(&mut state, &traction)
         .expect("the coupling step solves");
     (coupled, state, traction)
-}
-
-/// Smallest residual threshold that one evaluation of `b - A u` can certify.
-///
-/// The derivation is the one `attainable_threshold` in Ares-operator's
-/// verification harness states: with `k = row_terms` operations per entry
-/// and `gamma_k = k u / (1 - k u)`, `u = EPSILON / 2`, the evaluation error
-/// is at most `gamma_k (|b| + |A| |u|) <= 2 gamma_k |A|_inf |u|_2` (Higham,
-/// *Accuracy and Stability of Numerical Algorithms*, 2nd ed., Lemma 3.1 and
-/// §3.5). Athena accepts convergence only on the recomputed `|b - A u|`, so
-/// a smaller threshold is unattainable.
-fn attainable_threshold(row_terms: usize, operator_norm: f64, solution_norm: f64) -> f64 {
-    let terms = f64::from(
-        u32::try_from(row_terms)
-            .expect("invariant: a 2D mesh row couples far fewer than 2^32 terms"),
-    );
-    let unit_roundoff = f64::EPSILON / 2.0;
-    let gamma = terms * unit_roundoff / (1.0 - terms * unit_roundoff);
-    2.0 * gamma * operator_norm * solution_norm
-}
-
-/// Terms accumulated into one entry of `b - A u`: one `D N` element-matrix
-/// row per cell at the busiest node, plus the subtraction from `b`.
-fn row_terms(cells: &[[usize; 3]], node_count: usize) -> usize {
-    let mut cells_at_node = vec![0_usize; node_count];
-    for &node in cells.iter().flatten() {
-        cells_at_node[node] += 1;
-    }
-    cells_at_node.into_iter().max().unwrap_or(0) * 2 * 3 + 1
-}
-
-/// `|A|_inf` from the columns of the symmetric constrained stiffness.
-fn infinity_norm(operator: &ConstrainedStiffness<'_, f64, 2, 3>) -> f64 {
-    use athena_core::{KrylovBackend, LinearOperator};
-    let backend = athena_leto::LetoBackend::<f64>::default();
-    let dofs = operator.dimension();
-    let mut unit = leto::Array1::zeros([dofs]);
-    let mut column = leto::Array1::zeros([dofs]);
-    let mut largest = 0.0_f64;
-    for index in 0..dofs {
-        {
-            let mut view = backend.view_mut(&mut unit);
-            let slots = view.as_mut_slice().expect("contiguous");
-            slots.fill(0.0);
-            slots[index] = 1.0;
-        }
-        operator
-            .apply(&backend, backend.view(&unit), backend.view_mut(&mut column))
-            .expect("well-shaped");
-        let sum: f64 = column
-            .as_slice()
-            .expect("contiguous")
-            .iter()
-            .map(|a| a.abs())
-            .sum();
-        largest = largest.max(sum);
-    }
-    largest
 }
 
 #[test]

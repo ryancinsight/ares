@@ -80,13 +80,18 @@ fn strain_energy_equals_external_work() {
         strain_energy > 0.0,
         "the body stored no energy, so this identity is being satisfied trivially"
     );
-    // The bound is the solver's, not the discretisation's: the identity is
-    // exact for the exact solution of the discrete system, so the residual
-    // tolerance is what separates the two sides.
+    // The bound is the solver's, not the discretisation's. Every constrained
+    // displacement is zero, so on the computed `u` the two sides differ by
+    // `2 (U - W) = u . (K u - f) = -u . r`, with `r = b - A u` the residual
+    // the solve stopped at, giving `|U - W| / U = |u . r| / (u . K u) <=
+    // |u| |r| / (u . K u)` by Cauchy-Schwarz. The solve's threshold, the
+    // operator's residual floor, bounds `|r|`; on this mesh the right side
+    // evaluates to about 7e-12 (measured: `|u| = 5.9e-4`, threshold
+    // `4.9e-6`, `u . K u = 435`), below the asserted `1e-9`.
     let relative = (strain_energy - external_work).abs() / strain_energy;
     assert!(
         relative < 1e-9,
         "strain energy {strain_energy:.6e} and external work {external_work:.6e} differ by \
-         {relative:.3e} relative, far above the solver tolerance"
+         {relative:.3e} relative, above the residual bound"
     );
 }
