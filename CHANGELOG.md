@@ -10,10 +10,14 @@
   `boundary.add_consistent_loads(&mut loads)`; keep the nodes alive and
   unmodified while the boundary is in use, and validate a new boundary after
   moving them.
-- [major] `facet_measure`, `TractionFacet` and `TractionBoundary` require
-  `D >= 1` ([ADR 0004](docs/adr/0004-facet-dimension-at-least-one.md)); `D = 0`
-  no longer compiles. Migrate to `D >= 1`: no `D = 0` call ever completed work,
-  because each one panicked at run time.
+- [major] `facet_measure` rejects `D = 0` at compile time
+  ([ADR 0004](docs/adr/0004-facet-dimension-at-least-one.md)); so do
+  `TractionBoundary::try_new` and `add_consistent_loads`, which instantiate it.
+  `D >= 1` is the documented contract of `facet_measure`, `TractionFacet` and
+  `TractionBoundary`, but `TractionFacet::<_, 0>::new` still compiles and runs.
+  Migrate to `D >= 1`. Before, `facet_measure::<_, 0>` and `try_new` with a
+  facet panicked at run time, and `TractionBoundary::<f64, 0>::try_new(&[],
+  &[[]])` returned `Ok`; that call now fails to compile.
 
 ### Fixed
 
