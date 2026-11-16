@@ -14,7 +14,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "both exact comparisons are exact by derivation rather than by luck. The relay check compares two routes through the same arithmetic, so any difference is an adapter defect and not rounding. The constrained displacements are exactly zero by induction over the iteration: the initial guess is zero, so the constrained residual starts at b_c - u_c = 0; the operator's constrained rows are the identity, so (A p)_c = p_c; and every update is therefore a multiply-add on exact zeros, which stays exactly zero for as many iterations as the solver runs."
+    reason = "the exact comparisons are exact by derivation rather than by luck. The relay check compares two routes through the same arithmetic, so any difference is an adapter defect and not rounding. The constrained displacements are exactly zero by induction over the iteration: the initial guess is zero, so the constrained residual starts at b_c - u_c = 0; the operator's constrained rows are the identity, so (A p)_c = p_c; and every update is therefore a multiply-add on exact zeros, which stays exactly zero for as many iterations as the solver runs. The residual-floor checks are exact too: the hand-evaluated chain uses only powers of two, and doubling is exact in binary floating point."
 )]
 
 use aequitas::systems::si::quantities::{Dimensionless, Pressure};
@@ -235,4 +235,66 @@ fn a_prescribed_displacement_is_reproduced_by_the_solve() {
         displacement[4].abs() > stretch * 1e-3,
         "the prescribed motion did not propagate to the free nodes"
     );
+}
+
+/// The shared fixture as an operator.
+fn held_square((nodes, cells, prescribed): &Fixture) -> ConstrainedStiffness<'_, f64, 2, 3> {
+    let mesh = SimplexMesh::try_new(nodes, cells).expect("valid mesh");
+    let bc = DirichletConditions::try_new(prescribed, mesh.node_count()).expect("valid");
+    ConstrainedStiffness::new(mesh, moduli::<f64>(2.5, 0.25), bc)
+}
+
+#[test]
+fn the_residual_floor_is_the_hand_evaluated_absolute_chain() {
+    // E = 5/2 and nu = 1/4 give mu = lambda = 1. Every other factor is a
+    // power of two (areas 1/2, shape gradients 0 and +-1), so the chain is
+    // exact in binary and the floor is compared for equality.
+    //
+    // Held entries enter the stiffness as zeros, so |u| is (3, 1) at node 1
+    // and (1, 2) at node 2. Cell [0,1,2] has shape gradients (-1,0), (1,-1),
+    // (0,1): |G| = [[3,4],[1,3]], tr|eps| = 6, |sigma| = 2|eps| + 6 I =
+    // [[12,5],[5,12]], node forces (6,2.5), (8.5,8.5), (2.5,6). Cell [0,2,3]
+    // has (0,-1), (1,0), (-1,1): |G| = [[1,0],[2,0]], tr|eps| = 1, |sigma| =
+    // [[3,2],[2,1]], node forces (1,.5), (1.5,1), (2.5,1.5). The free rows
+    // are node 1: (8.5,8.5) and node 2: (4,7); the held rows are identity
+    // rows, the signed entries (-2,1) and (2,-4). Then ||A|u||^2 = 144.5 +
+    // 65 + 25 = 234.5. Nodes 0 and 2 lie in both cells, so the operation
+    // count is `N + 2 D + 9 + 2 = 18` for triangles in the plane.
+    let fixture = fixture();
+    let operator = held_square(&fixture);
+    let displacement = [-2.0, 1.0, 3.0, -1.0, -1.0, 2.0, 2.0, -4.0];
+
+    let unit_roundoff = f64::EPSILON / 2.0;
+    let gamma = 18.0 * unit_roundoff / (1.0 - 18.0 * unit_roundoff);
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma * 234.5_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_doubles_with_the_displacement() {
+    // Doubling is exact in binary floating point, and every term of the bound
+    // is linear in the displacement magnitudes, so the floor doubles exactly.
+    let fixture = fixture();
+    let operator = held_square(&fixture);
+    let displacement = [0.0, 0.0, 1.5e-4, -2.0e-5, 7.0e-5, 3.0e-5, 0.0, 0.0];
+    let doubled = displacement.map(|value| value * 2.0);
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert!(floor > 0.0, "a moving free node must have a nonzero floor");
+    assert_eq!(
+        operator.residual_floor(&doubled).expect("well-shaped"),
+        2.0 * floor
+    );
+}
+
+#[test]
+fn the_residual_floor_rejects_a_misshaped_displacement() {
+    let fixture = fixture();
+    let error = held_square(&fixture)
+        .residual_floor(&[0.0; 7])
+        .expect_err("seven entries for eight degrees of freedom");
+    assert!(matches!(
+        error,
+        athena_leto::LetoBackendError::LengthMismatch { left: 8, right: 7 }
+    ));
 }
