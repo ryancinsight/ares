@@ -6,12 +6,14 @@ use eunomia::{FloatElement, NumericElement, RealField};
 use crate::ConstrainedStiffness;
 
 impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D, N> {
-    /// An upper bound on the 2-norm error of evaluating `b - A u` in `T`.
+    /// An upper bound on the 2-norm error of evaluating `b - A u` in `T` at
+    /// the displacement that solves `A u = b`.
     ///
-    /// Athena accepts a Krylov solve as converged only when the recomputed
-    /// `|b - A u|_2` meets its threshold, and that evaluation errs by up to
-    /// this bound at `displacement`, so a threshold far below it is not
-    /// reliably attainable. Use it as an absolute threshold.
+    /// From athena#158 on, Athena's conjugate gradients accepts a solve only
+    /// when the recomputed `|b - A u|_2` meets its threshold, and that
+    /// evaluation errs by up to this bound at the solution, so a threshold
+    /// far below it is not reliably attainable. Use it as an absolute
+    /// threshold.
     ///
     /// # Derivation
     ///
@@ -57,6 +59,11 @@ impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D
     /// the displacement it was given. The count mirrors `ares`'s
     /// `stiffness_action`, so it must change when that kernel's operation
     /// order changes.
+    ///
+    /// The derivation assumes no underflow or overflow and `k u < 1`. The
+    /// floor is itself evaluated in `T`, so its value carries a relative
+    /// rounding of order `(n + k) u` for `n` degrees of freedom, which the
+    /// bound does not include.
     ///
     /// # Examples
     ///
