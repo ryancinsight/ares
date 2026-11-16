@@ -14,7 +14,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "both exact comparisons are exact by derivation rather than by luck. The relay check compares two routes through the same arithmetic, so any difference is an adapter defect and not rounding. The constrained displacements are exactly zero by induction over the iteration: the initial guess is zero, so the constrained residual starts at b_c - u_c = 0; the operator's constrained rows are the identity, so (A p)_c = p_c; and every update is therefore a multiply-add on exact zeros, which stays exactly zero for as many iterations as the solver runs."
+    reason = "the exact comparisons are exact by derivation rather than by luck. The relay check compares two routes through the same arithmetic, so any difference is an adapter defect and not rounding. The constrained displacements are exactly zero by induction over the iteration: the initial guess is zero, so the constrained residual starts at b_c - u_c = 0; the operator's constrained rows are the identity, so (A p)_c = p_c; and every update is therefore a multiply-add on exact zeros, which stays exactly zero for as many iterations as the solver runs. The residual-floor checks are exact too: the hand-evaluated values are short dyadic rationals, so every intermediate is exact and the expected floor applies the same `gamma` and `sqrt` as the method, and doubling is exact in binary floating point."
 )]
 
 use aequitas::systems::si::quantities::{Dimensionless, Pressure};
@@ -235,4 +235,136 @@ fn a_prescribed_displacement_is_reproduced_by_the_solve() {
         displacement[4].abs() > stretch * 1e-3,
         "the prescribed motion did not propagate to the free nodes"
     );
+}
+
+/// The fixture's square as an operator, holding `held` with `moduli`.
+fn held_square<'a>(
+    (nodes, cells, _): &'a Fixture,
+    held: &'a [PrescribedDisplacement<f64>],
+    moduli: IsotropicModuli<f64>,
+) -> ConstrainedStiffness<'a, f64, 2, 3> {
+    let mesh = SimplexMesh::try_new(nodes, cells).expect("valid mesh");
+    let bc = DirichletConditions::try_new(held, mesh.node_count()).expect("valid");
+    ConstrainedStiffness::new(mesh, moduli, bc)
+}
+
+/// `gamma_k` for `k = N + 2 D + 9 + 2 = 18`: nodes 0 and 2 of the square lie
+/// in both cells, so two cells meet at the busiest node.
+fn gamma_18() -> f64 {
+    let unit_roundoff = f64::EPSILON / 2.0;
+    18.0 * unit_roundoff / (1.0 - 18.0 * unit_roundoff)
+}
+
+#[test]
+fn the_residual_floor_is_the_hand_evaluated_absolute_chain() {
+    // E = 5/2 and nu = 1/4 give mu = lambda = 1. Every intermediate is a
+    // short dyadic rational (areas 1/2, shape gradients 0 and +-1), so the
+    // chain is exact and the floor is compared for equality.
+    //
+    // Held entries enter the stiffness as zeros, so |u| is (3, 1) at node 1
+    // and (1, 2) at node 2. Cell [0,1,2] has shape gradients (-1,0), (1,-1),
+    // (0,1): |G| = [[3,4],[1,3]], tr|eps| = 6, |sigma| = 2|eps| + 6 I =
+    // [[12,5],[5,12]], node forces (6,2.5), (8.5,8.5), (2.5,6). Cell [0,2,3]
+    // has (0,-1), (1,0), (-1,1): |G| = [[1,0],[2,0]], tr|eps| = 1, |sigma| =
+    // [[3,2],[2,1]], node forces (1,.5), (1.5,1), (2.5,1.5). The free rows
+    // are node 1: (8.5,8.5) and node 2: (4,7); the held rows are identity
+    // rows, the signed entries (-2,1) and (2,-4). Then ||A|u||^2 = 144.5 +
+    // 65 + 25 = 234.5.
+    let fixture = fixture();
+    let operator = held_square(&fixture, &fixture.2, moduli(2.5, 0.25));
+    let displacement = [-2.0, 1.0, 3.0, -1.0, -1.0, 2.0, 2.0, -4.0];
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma_18() * 234.5_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_counts_a_free_reference_node() {
+    // Only node 3 is held, so node 0, the reference of both cells, moves:
+    // u = (1, 0) there and zero elsewhere, so |u_0| enters |G| and every
+    // |u_b| is zero.
+    // Cell [0,1,2]: |G| = [[1,2],[0,0]], tr|eps| = 1, |sigma| =
+    // [[3,2],[2,1]], node forces (1.5,1), (2.5,1.5), (1,.5). Cell [0,2,3]:
+    // |G| = [[2,1],[0,0]], tr|eps| = 2, |sigma| = [[6,1],[1,2]], node forces
+    // (.5,1), (3,.5), (3.5,1.5). The rows are node 0: (2,2), node 1:
+    // (2.5,1.5), node 2: (4,1), and node 3 held at zero, so ||A|u||^2 = 33.5.
+    let fixture = fixture();
+    let held = [
+        PrescribedDisplacement::new(3, 0, 0.0),
+        PrescribedDisplacement::new(3, 1, 0.0),
+    ];
+    let operator = held_square(&fixture, &held, moduli(2.5, 0.25));
+    let displacement = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma_18() * 33.5_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_adds_the_reference_and_neighbour_motion() {
+    // Only node 3 is held. Nodes 0 and 1 both move by (1, 0), so in cell
+    // [0,1,2] the term (|u_1| + |u_0|) is (2, 0), a sum of two nonzero
+    // magnitudes that a difference or a maximum would not reproduce. Cell
+    // [0,1,2]: |G| = [[2,3],[0,0]], tr|eps| = 2, |sigma| = [[6,3],[3,2]],
+    // node forces (3,1.5), (4.5,2.5), (1.5,1). Cell [0,2,3]: |G| =
+    // [[2,1],[0,0]], tr|eps| = 2, |sigma| = [[6,1],[1,2]], node forces
+    // (.5,1), (3,.5), (3.5,1.5). The rows are node 0: (3.5,2.5), node 1:
+    // (4.5,2.5), node 2: (4.5,1.5), and node 3 held at zero, so ||A|u||^2 =
+    // 18.5 + 26.5 + 22.5 = 67.5.
+    let fixture = fixture();
+    let held = [
+        PrescribedDisplacement::new(3, 0, 0.0),
+        PrescribedDisplacement::new(3, 1, 0.0),
+    ];
+    let operator = held_square(&fixture, &held, moduli(2.5, 0.25));
+    let displacement = [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma_18() * 67.5_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_takes_the_magnitude_of_a_negative_lambda() {
+    // E = 1 and nu = -1/2 give mu = 1 and lambda = -1/2, and the bound uses
+    // |lambda| = 1/2. The displacement is the chain test's, so |G| and |eps|
+    // are as there. Cell [0,1,2]: tr|eps| = 6, |sigma| = [[9,5],[5,9]], node
+    // forces (4.5,2.5), (7,7), (2.5,4.5). Cell [0,2,3]: tr|eps| = 1,
+    // |sigma| = [[2.5,2],[2,.5]], forces (1,.25), (1.25,1), (2.25,1.25). The
+    // free rows are node 1: (7,7) and node 2: (3.75,5.5), with the identity
+    // rows (-2,1) and (2,-4): ||A|u||^2 = 98 + 44.3125 + 25 = 167.3125.
+    let fixture = fixture();
+    let operator = held_square(&fixture, &fixture.2, moduli(1.0, -0.5));
+    let displacement = [-2.0, 1.0, 3.0, -1.0, -1.0, 2.0, 2.0, -4.0];
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma_18() * 167.3125_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_doubles_with_the_displacement() {
+    // Doubling is exact in binary floating point, and every term of the bound
+    // is linear in the displacement magnitudes, so the floor doubles exactly.
+    let fixture = fixture();
+    let operator = held_square(&fixture, &fixture.2, moduli(2.5, 0.25));
+    let displacement = [0.0, 0.0, 1.5e-4, -2.0e-5, 7.0e-5, 3.0e-5, 0.0, 0.0];
+    let doubled = displacement.map(|value| value * 2.0);
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert!(floor > 0.0, "a moving free node must have a nonzero floor");
+    assert_eq!(
+        operator.residual_floor(&doubled).expect("well-shaped"),
+        2.0 * floor
+    );
+}
+
+#[test]
+fn the_residual_floor_rejects_a_misshaped_displacement() {
+    let fixture = fixture();
+    let error = held_square(&fixture, &fixture.2, moduli(2.5, 0.25))
+        .residual_floor(&[0.0; 7])
+        .expect_err("seven entries for eight degrees of freedom");
+    assert!(matches!(
+        error,
+        athena_leto::LetoBackendError::LengthMismatch { left: 8, right: 7 }
+    ));
 }
