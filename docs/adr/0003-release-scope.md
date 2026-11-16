@@ -67,7 +67,7 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
 | ares-solid | Gaia tetrahedral mesh as solve input | in scope, `M-vessel-wall`: example `vessel_wall` |
 | ares-solid | Consistent body-force loads | delivered (`verification::mms`) |
 | ares-solid | Typed Dirichlet conditions | delivered (`oracles::dirichlet`) |
-| ares-solid | Consistent traction loads on validated nodes (ADR 0002) | delivered (`oracles::neumann`); its undocumented `D = 0` panic is the verification item `ARES-FACET-DIM-ZERO` |
+| ares-solid | Consistent traction loads on validated nodes (ADR 0002) | delivered (`oracles::neumann`); `D >= 1` is enforced at compile time (ADR 0004) |
 | ares-solid | Moirai parallel assembly, Mnemosyne arenas, Themis placement | non-goal (veto point 3) |
 | ares-operator | Athena `LinearOperator` over Leto, conjugate-gradient solve | delivered (`ares-operator` `operator` tests) |
 | ares-operator | Manufactured solution at `O(h^2)`, energy identity, cantilever, Lamé cylinder | delivered at `f64` (`verification::*`); `f32` for MMS accuracy and energy (`scalar.rs`), whose rule exempts rate studies only (`scalar.rs:18-27`) |

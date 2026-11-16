@@ -8,6 +8,8 @@ use crate::element::leading_determinant;
 /// edge in 2-D, a triangle in 3-D — so both arrays are `D` long and the shape
 /// needs no further parameter.
 ///
+/// `D` is at least 1; see [`facet_measure`] for the contract.
+///
 /// `traction` is force per unit area (per unit length in 2-D): a stress, not a
 /// force. The distinction is the one Neumann conditions are usually got wrong
 /// on, because the two differ by the facet measure and a small mesh makes the
@@ -45,8 +47,22 @@ impl<T, const D: usize> TractionFacet<T, D> {
 /// form of the cross-product magnitude that gives a triangle's area and the
 /// edge-length that gives a segment's, so one expression covers both
 /// dimensions instead of a match on `D`.
+///
+/// # Dimension
+///
+/// `D` is at least 1: the facet of a `D`-simplex has `D - 1` edges, and a
+/// space with no coordinate has no simplex to bound. `D = 0` is rejected when
+/// the function is instantiated, so it is a compile error and not a run-time
+/// panic, and the same holds for every caller that reaches this function with
+/// `D = 0`:
+///
+/// ```compile_fail
+/// let nodes: [[f64; 0]; 0] = [];
+/// let _ = ares::boundary::facet_measure(&nodes);
+/// ```
 #[must_use]
 pub fn facet_measure<T: RealField, const D: usize>(nodes: &[[T; D]; D]) -> T {
+    const { assert!(D >= 1, "a facet needs at least one spatial dimension") }
     let edges = D - 1;
 
     // Column `i` is `x_{i+1} - x_0`; only the leading `edges` columns are used.
@@ -119,6 +135,15 @@ pub fn facet_measure<T: RealField, const D: usize>(nodes: &[[T; D]; D]) -> T {
 /// let mut loads = [0.0; 4];
 /// boundary.add_consistent_loads(&mut loads)?;
 /// Ok::<(), MisshapedLoad>(())
+/// ```
+///
+/// `D` is at least 1 ([`facet_measure`]); a boundary in zero dimensions does
+/// not compile, although [`TractionBoundary::try_new`] would otherwise accept
+/// it:
+///
+/// ```compile_fail
+/// use ares::TractionBoundary;
+/// let _ = TractionBoundary::<f64, 0>::try_new(&[], &[[]]);
 /// ```
 #[derive(Clone, Copy, Debug)]
 pub struct TractionBoundary<'bc, T, const D: usize> {
