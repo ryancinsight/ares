@@ -281,7 +281,8 @@ fn the_residual_floor_is_the_hand_evaluated_absolute_chain() {
 #[test]
 fn the_residual_floor_counts_a_free_reference_node() {
     // Only node 3 is held, so node 0, the reference of both cells, moves:
-    // u = (1, 0) there and zero elsewhere, and |u_b| + |u_0| enters |G|.
+    // u = (1, 0) there and zero elsewhere, so |u_0| enters |G| and every
+    // |u_b| is zero.
     // Cell [0,1,2]: |G| = [[1,2],[0,0]], tr|eps| = 1, |sigma| =
     // [[3,2],[2,1]], node forces (1.5,1), (2.5,1.5), (1,.5). Cell [0,2,3]:
     // |G| = [[2,1],[0,0]], tr|eps| = 2, |sigma| = [[6,1],[1,2]], node forces
@@ -297,6 +298,29 @@ fn the_residual_floor_counts_a_free_reference_node() {
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
     assert_eq!(floor, 2.0 * gamma_18() * 33.5_f64.sqrt());
+}
+
+#[test]
+fn the_residual_floor_adds_the_reference_and_neighbour_motion() {
+    // Only node 3 is held. Nodes 0 and 1 both move by (1, 0), so in cell
+    // [0,1,2] the term (|u_1| + |u_0|) is (2, 0), a sum of two nonzero
+    // magnitudes that a difference or a maximum would not reproduce. Cell
+    // [0,1,2]: |G| = [[2,3],[0,0]], tr|eps| = 2, |sigma| = [[6,3],[3,2]],
+    // node forces (3,1.5), (4.5,2.5), (1.5,1). Cell [0,2,3]: |G| =
+    // [[2,1],[0,0]], tr|eps| = 2, |sigma| = [[6,1],[1,2]], node forces
+    // (.5,1), (3,.5), (3.5,1.5). The rows are node 0: (3.5,2.5), node 1:
+    // (4.5,2.5), node 2: (4.5,1.5), and node 3 held at zero, so ||A|u||^2 =
+    // 18.5 + 26.5 + 22.5 = 67.5.
+    let fixture = fixture();
+    let held = [
+        PrescribedDisplacement::new(3, 0, 0.0),
+        PrescribedDisplacement::new(3, 1, 0.0),
+    ];
+    let operator = held_square(&fixture, &held, moduli(2.5, 0.25));
+    let displacement = [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    assert_eq!(floor, 2.0 * gamma_18() * 67.5_f64.sqrt());
 }
 
 #[test]
