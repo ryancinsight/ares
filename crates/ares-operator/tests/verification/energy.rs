@@ -52,7 +52,7 @@ fn strain_energy_equals_external_work() {
         .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
-    let displacement = solve(&mesh, material, &prescribed, &external);
+    let displacement = solve(&mesh, material, &prescribed, &external).0;
 
     // U = (1/2) u . K u, from the unconstrained operator: the stored energy is
     // a property of the body, not of how it was held.
@@ -82,12 +82,13 @@ fn strain_energy_equals_external_work() {
     );
     // The bound is the solver's, not the discretisation's. Every constrained
     // displacement is zero, so on the computed `u` the two sides differ by
-    // `2 (U - W) = u . (K u - f) = -u . r`, with `r = b - A u` the residual
-    // the solve stopped at, giving `|U - W| / U = |u . r| / (u . K u) <=
-    // |u| |r| / (u . K u)` by Cauchy-Schwarz. The solve's threshold, the
-    // operator's residual floor, bounds `|r|`; on this mesh the right side
-    // evaluates to about 7e-12 (measured: `|u| = 5.9e-4`, threshold
-    // `4.9e-6`, `u . K u = 435`), below the asserted `1e-9`.
+    // `2 (U - W) = u . (K u - f) = -u . r`, with `r` the residual Athena
+    // recomputed when it accepted the solve (`b - K u` on the free rows, by the
+    // operations `internal_forces` applies), giving `|U - W| / U = |u . r| /
+    // (u . K u) <= |u| |r| / (u . K u)` by Cauchy-Schwarz. The solve's
+    // threshold, the operator's residual floor, bounds that computed `|r|`; on
+    // this mesh the right side evaluates to about 7e-12 (measured: `|u| =
+    // 5.9e-4`, threshold `4.9e-6`, `u . K u = 435`), below the asserted `1e-9`.
     let relative = (strain_energy - external_work).abs() / strain_energy;
     assert!(
         relative < 1e-9,

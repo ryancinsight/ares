@@ -79,7 +79,7 @@ fn tip_deflection(columns: usize, rows: usize) -> f64 {
         .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
-    let displacement = solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external);
+    let displacement = solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external).0;
 
     // Averaged over the tip face: the end section rotates, so a single corner
     // node would report a deflection contaminated by that rotation.

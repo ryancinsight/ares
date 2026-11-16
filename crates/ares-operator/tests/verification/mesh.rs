@@ -105,12 +105,14 @@ impl Grid {
 /// Panics rather than returning on non-convergence: an oracle that silently
 /// compared an unconverged field against a closed form would be measuring the
 /// solver's failure as if it were the discretisation's error.
+///
+/// Returns the solution and the absolute residual threshold the solve met.
 pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
     mesh: &SimplexMesh<'_, T, 2, 3>,
     material: IsotropicModuli<T>,
     prescribed: &[PrescribedDisplacement<T>],
     external: &[T],
-) -> Vec<T> {
+) -> (Vec<T>, T) {
     let conditions =
         DirichletConditions::try_new(prescribed, mesh.node_count()).expect("valid conditions");
     let operator = ConstrainedStiffness::new(*mesh, material, conditions);
@@ -150,7 +152,7 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
         &mut workspace,
         policy,
     );
-    solution.as_slice().expect("contiguous").to_vec()
+    (solution.as_slice().expect("contiguous").to_vec(), threshold)
 }
 
 /// Iteration budget of one verification solve.

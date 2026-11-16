@@ -6,7 +6,7 @@
 //! generic the integrity rules name — passes every `f64` oracle in this suite
 //! and every one of them at `f32` too, because it would simply be more
 //! accurate than `f32` warrants. What it cannot do is match `f32`'s error
-//! *scale*: the assertions below are bounded by `f32::EPSILON`, so a body
+//! *scale*: the energy bound below follows `f32::EPSILON`, so a body
 //! silently computing in `f64` and narrowing at the boundary is not caught by
 //! accuracy but by the accompanying `f64` runs it must also satisfy. The real
 //! catch is coarser and more reliable: a body pinned to a concrete type does
@@ -25,8 +25,8 @@
 //!
 //! The oracles that *do* transfer are the ones with no asymptotic content: a
 //! single-mesh accuracy comparison, and the energy identity, which is exact at
-//! any resolution. What bounds the identity at `f32` is stated at its
-//! assertion; it is not the solver's threshold.
+//! any resolution. Its bound at `f32` follows from the threshold the solve met,
+//! derived at `energy_imbalance_bound`.
 
 use ares::{PrescribedDisplacement, SimplexMesh, TractionBoundary, TractionFacet};
 
@@ -73,7 +73,7 @@ fn the_manufactured_solution_is_recovered_at_f32() {
     mesh.add_body_force(&body, &mut external)
         .expect("well-shaped");
 
-    let computed = solve(&mesh, moduli::<f32>(YOUNG, POISSON), &prescribed, &external);
+    let computed = solve(&mesh, moduli::<f32>(YOUNG, POISSON), &prescribed, &external).0;
 
     let error: Vec<f32> = computed
         .iter()
@@ -85,6 +85,34 @@ fn the_manufactured_solution_is_recovered_at_f32() {
         relative < 0.05,
         "the f32 solve reproduces the manufactured field to only {relative:.4} relative error"
     );
+}
+
+/// The bound on `|U - W| / U` that the solve's stopping rule implies at `f32`.
+///
+/// Every constrained displacement is zero, and on the free rows
+/// `internal_forces` evaluates `K u` with the operations Athena's operator
+/// applies, so `2 (U - W) = -u . d` with `d = b - fl(K u)`. Athena accepts a
+/// solve only when its computed `|fl(b - fl(K u))|_2` is at most `threshold`.
+/// The computed norm of `n` entries and the componentwise subtraction each
+/// carry a relative error, together at most `gamma_(n+1)` (Higham, ch. 3,
+/// recalled), so `|d|_2 <= threshold / (1 - gamma_(n+1))`. Cauchy-Schwarz
+/// then gives `|U - W| / U = |u . d| / (u . K u) <= |u|_2 |d|_2 / (2 U)`.
+///
+/// The dot products are formed in `f64` from exact products, so their rounding
+/// (about `n 2^-53` relative to `sum |u_i f_i|`) is not included.
+fn energy_imbalance_bound(displacement: &[f32], threshold: f32, strain_energy: f64) -> f64 {
+    let terms = f64::from(
+        u32::try_from(displacement.len() + 1)
+            .expect("invariant: the fixture is a few hundred dofs"),
+    );
+    let unit_roundoff = f64::from(f32::EPSILON) / 2.0;
+    let gamma = terms * unit_roundoff / (1.0 - terms * unit_roundoff);
+    let norm = displacement
+        .iter()
+        .map(|value| f64::from(*value).powi(2))
+        .sum::<f64>()
+        .sqrt();
+    norm * f64::from(threshold) / ((1.0 - gamma) * 2.0 * strain_energy)
 }
 
 #[test]
@@ -124,7 +152,7 @@ fn strain_energy_equals_external_work_at_f32() {
         .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
-    let displacement = solve(&mesh, material, &prescribed, &external);
+    let (displacement, threshold) = solve(&mesh, material, &prescribed, &external);
 
     let mut internal = vec![0.0_f32; nodes.len() * 2];
     mesh.internal_forces(&material, &displacement, &mut internal)
@@ -146,26 +174,13 @@ fn strain_energy_equals_external_work_at_f32() {
         / 2.0;
 
     assert!(strain_energy > 0.0, "the body stored no energy");
-    // The sides differ by `|u . r| / (u . K u)` with `r = b - A u`, as derived
-    // in the `f64` energy oracle, but the residual does not bound it here:
-    // the solve stopped at `|r| = 6.1e2`, so Cauchy-Schwarz gives only
-    // `|u| |r| / (u . K u) = 8e-4` (measured: `|u| = 5.9e-4`,
-    // `u . K u = 435`), above the asserted `1e-4`. The measured difference
-    // is `5.6e-7`.
-    //
-    // Hypothesis, not a derived bound: in exact arithmetic CG's iterate from
-    // a zero start lies in the Krylov space its residual is orthogonal to, so
-    // `u . r = 0`, and what remains is rounding. Here the second solve met
-    // its threshold at once, so `u` is the estimate solve's zero-start
-    // iterate. The `f32` evaluation of `K u` adds at most
-    // `gamma_k |u| . |K| |u| / (u . K u)` relative, with `gamma_k` about
-    // `1.3e-6`; the measured `5.6e-7` lies below that scale. A solver whose
-    // iterate is not orthogonal to its residual could fail this assertion at
-    // the same residual.
+    // The stopping rule bounds the difference, but only to the residual
+    // floor's size, which at `f32` is a loose bound on a much smaller error.
     let relative = (strain_energy - external_work).abs() / strain_energy;
+    let bound = energy_imbalance_bound(&displacement, threshold, strain_energy);
     assert!(
-        relative < 1e-4,
+        relative <= bound,
         "at f32, strain energy {strain_energy:.6e} and external work {external_work:.6e} differ \
-         by {relative:.3e} relative"
+         by {relative:.3e} relative, above the {bound:.3e} the solve's threshold allows"
     );
 }

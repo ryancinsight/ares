@@ -82,7 +82,7 @@ fn solve_at(divisions: usize) -> (f64, f64, f64) {
     mesh.add_body_force(&nodal_body_force, &mut external)
         .expect("well-shaped");
 
-    let computed = solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external);
+    let computed = solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external).0;
 
     let mut error = vec![0.0_f64; grid.degrees_of_freedom()];
     let mut truth = vec![0.0_f64; grid.degrees_of_freedom()];

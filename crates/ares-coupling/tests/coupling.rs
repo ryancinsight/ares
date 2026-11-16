@@ -169,7 +169,7 @@ fn interface_work_equals_the_strain_energy() {
     assert!(
         relative < 1e-9,
         "interface work {work:.6e} and strain energy {energy:.6e} violate W = 2U by \
-         {relative:.3e} relative, far above the solver tolerance"
+         {relative:.3e} relative"
     );
 }
 

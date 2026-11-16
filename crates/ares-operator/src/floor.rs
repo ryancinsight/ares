@@ -6,13 +6,12 @@ use eunomia::{FloatElement, NumericElement, RealField};
 use crate::ConstrainedStiffness;
 
 impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D, N> {
-    /// The 2-norm below which `|b - A u|` cannot be certified in `T`.
+    /// An upper bound on the 2-norm error of evaluating `b - A u` in `T`.
     ///
     /// Athena accepts a Krylov solve as converged only when the recomputed
-    /// `|b - A u|_2` meets its threshold, so a threshold below the rounding
-    /// error of that evaluation is unattainable whatever the iteration does.
-    /// This returns an upper bound on that error at `displacement`, for use as
-    /// an absolute threshold.
+    /// `|b - A u|_2` meets its threshold, and that evaluation errs by up to
+    /// this bound at `displacement`, so a threshold far below it is not
+    /// reliably attainable. Use it as an absolute threshold.
     ///
     /// # Derivation
     ///
@@ -79,9 +78,15 @@ impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D
     /// .expect("positive definite");
     /// let operator = ConstrainedStiffness::new(mesh, moduli, conditions);
     ///
-    /// // A body at rest can certify a zero residual exactly.
-    /// let floor = operator.residual_floor(&[0.0; 8]).expect("eight degrees of freedom");
-    /// assert_eq!(floor, 0.0);
+    /// // A held entry is an identity row: it adds `|u_i|` to the norm that
+    /// // `2 gamma_k` scales, with `k = N + 2 D + 9 + 2 = 18` as nodes 0 and 2
+    /// // lie in both cells.
+    /// let mut displacement = [0.0; 8];
+    /// displacement[0] = -3.0;
+    /// let floor = operator.residual_floor(&displacement).expect("eight degrees of freedom");
+    /// let unit_roundoff = f64::EPSILON / 2.0;
+    /// let gamma = 18.0 * unit_roundoff / (1.0 - 18.0 * unit_roundoff);
+    /// assert_eq!(floor, 2.0 * gamma * 3.0);
     /// ```
     ///
     /// # Errors

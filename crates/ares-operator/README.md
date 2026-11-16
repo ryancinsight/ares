@@ -46,8 +46,8 @@ assert!(report.converged());
 ## Residual floor
 
 `ConstrainedStiffness::residual_floor` bounds the rounding error of evaluating
-`b - A u` at a displacement, so a caller can ask Athena for an absolute
-threshold the recomputed residual can actually meet. It evaluates the element
+`b - A u` at a displacement, for use as an absolute threshold in Athena's
+convergence policy. It evaluates the element
 action's own chain of operations on absolute values, one pass over the cells,
 and its operation count mirrors `ares::stiffness_action`.
 
