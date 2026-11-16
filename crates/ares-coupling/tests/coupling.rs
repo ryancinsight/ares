@@ -100,11 +100,15 @@ impl Fixture {
     }
 }
 
-fn policy() -> ConvergencePolicy<f64> {
-    ConvergencePolicy::new(0.0, 1e-14, 20_000).expect("valid policy")
-}
+/// Iteration budget of one coupling solve; the fixtures have at most 90
+/// unknowns, so it bounds a stalled solve rather than a converging one.
+const SOLVE_BUDGET: usize = 20_000;
 
 /// Run one coupling step and return `(partition, state, traction)`.
+///
+/// Solves twice. The first solve only locates `u` for
+/// [`ConstrainedStiffness::residual_floor`], so its `sqrt(EPSILON)` tolerance
+/// carries no accuracy claim; the second continues from it to that floor.
 fn couple(
     fixture: &Fixture,
     traction_per_facet: [f64; 2],
@@ -112,23 +116,36 @@ fn couple(
     let mesh = SimplexMesh::try_new(&fixture.nodes, &fixture.cells).expect("valid mesh");
     let conditions =
         DirichletConditions::try_new(&fixture.clamped, mesh.node_count()).expect("valid");
-    let operator = ConstrainedStiffness::new(mesh, moduli(200e9, 0.3), conditions);
-    let interface =
-        StructuralInterface::try_new(&fixture.interface_nodes, &fixture.interface_facets, &mesh)
-            .expect("conforming interface");
-    let mut partition =
-        StructuralPartition::try_new(mesh, operator, interface, policy()).expect("workspace");
+    let operator = || ConstrainedStiffness::new(mesh, moduli(200e9, 0.3), conditions);
+    let partition = |policy| {
+        let interface = StructuralInterface::try_new(
+            &fixture.interface_nodes,
+            &fixture.interface_facets,
+            &mesh,
+        )
+        .expect("conforming interface");
+        StructuralPartition::try_new(mesh, operator(), interface, policy).expect("workspace")
+    };
 
-    let mut traction = vec![0.0_f64; partition.input_dimension()];
-    for (facet, slot) in traction.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-        let _ = facet;
+    let mut estimate = partition(
+        ConvergencePolicy::new(0.0, f64::EPSILON.sqrt(), SOLVE_BUDGET).expect("valid policy"),
+    );
+    let mut traction = vec![0.0_f64; estimate.input_dimension()];
+    for slot in traction.as_chunks_mut::<2>().0 {
         *slot = traction_per_facet;
     }
-    let mut state = vec![0.0_f64; partition.state_dimension()];
-    partition
+    let mut state = vec![0.0_f64; estimate.state_dimension()];
+    estimate
+        .solve_for_traction(&mut state, &traction)
+        .expect("the estimate solves");
+
+    let threshold = operator().residual_floor(&state).expect("well-shaped");
+    let mut coupled =
+        partition(ConvergencePolicy::new(threshold, 0.0, SOLVE_BUDGET).expect("valid policy"));
+    coupled
         .solve_for_traction(&mut state, &traction)
         .expect("the coupling step solves");
-    (partition, state, traction)
+    (coupled, state, traction)
 }
 
 #[test]
@@ -152,7 +169,7 @@ fn interface_work_equals_the_strain_energy() {
     assert!(
         relative < 1e-9,
         "interface work {work:.6e} and strain energy {energy:.6e} violate W = 2U by \
-         {relative:.3e} relative, far above the solver tolerance"
+         {relative:.3e} relative"
     );
 }
 

@@ -147,7 +147,7 @@ fn solve_field(annulus: &Annulus) -> Vec<f64> {
         .add_consistent_loads(&mut external)
         .expect("well-shaped");
 
-    solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external)
+    solve(&mesh, moduli(YOUNG, POISSON), &prescribed, &external).0
 }
 
 /// Solve at a resolution; return `(h, relative error in u_r, mean u_r)`.

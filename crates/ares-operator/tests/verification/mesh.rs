@@ -105,12 +105,14 @@ impl Grid {
 /// Panics rather than returning on non-convergence: an oracle that silently
 /// compared an unconverged field against a closed form would be measuring the
 /// solver's failure as if it were the discretisation's error.
+///
+/// Returns the solution and the absolute residual threshold the solve met.
 pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
     mesh: &SimplexMesh<'_, T, 2, 3>,
     material: IsotropicModuli<T>,
     prescribed: &[PrescribedDisplacement<T>],
     external: &[T],
-) -> Vec<T> {
+) -> (Vec<T>, T) {
     let conditions =
         DirichletConditions::try_new(prescribed, mesh.node_count()).expect("valid conditions");
     let operator = ConstrainedStiffness::new(*mesh, material, conditions);
@@ -123,22 +125,56 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
     let right_hand_side = Array1::from_shape_vec([dofs], load).expect("valid vector");
     let mut solution = Array1::zeros([dofs]);
     let mut workspace = CgWorkspace::new(&backend, dofs).expect("workspace");
-    // Tight enough that the solver's residual is far below the discretisation
-    // error every oracle here measures, so a convergence rate reflects the
-    // element rather than the stopping rule.
-    // Scaled to the scalar rather than fixed: an f64 tolerance is unreachable
-    // in f32 and the solve would exhaust its budget instead of converging.
-    let relative = T::EPSILON * T::from_f64(64.0);
-    let policy =
-        ConvergencePolicy::<T>::new(T::from_f64(0.0), relative, 20_000).expect("valid policy");
+    let zero = <T as eunomia::NumericElement>::ZERO;
 
-    let report = Cg::<LetoBackend<T>>::solve_into(
-        &backend,
+    // The estimate only locates `u` for the residual floor below, so its
+    // tolerance carries no accuracy claim. A floor sized from an estimate that
+    // is too far off makes the second solve fail loudly; it cannot pass one
+    // falsely.
+    let estimate =
+        ConvergencePolicy::<T>::new(zero, T::EPSILON.sqrt(), SOLVE_BUDGET).expect("valid policy");
+    converge(
         &operator,
-        &Identity,
         &right_hand_side,
         &mut solution,
         &mut workspace,
+        estimate,
+    );
+
+    let threshold = operator
+        .residual_floor(solution.as_slice().expect("contiguous"))
+        .expect("well-shaped");
+    let policy = ConvergencePolicy::<T>::new(threshold, zero, SOLVE_BUDGET).expect("valid policy");
+    converge(
+        &operator,
+        &right_hand_side,
+        &mut solution,
+        &mut workspace,
+        policy,
+    );
+    (solution.as_slice().expect("contiguous").to_vec(), threshold)
+}
+
+/// Iteration budget of one verification solve.
+///
+/// It bounds a stalled solve; a converging one stops on its threshold first.
+const SOLVE_BUDGET: usize = 20_000;
+
+/// Run CG from the current `solution` and panic unless it converged.
+fn converge<T: RealScalar + RealField + core::fmt::LowerExp>(
+    operator: &ConstrainedStiffness<'_, T, 2, 3>,
+    right_hand_side: &Array1<T>,
+    solution: &mut Array1<T>,
+    workspace: &mut CgWorkspace<LetoBackend<T>>,
+    policy: ConvergencePolicy<T>,
+) {
+    let report = Cg::<LetoBackend<T>>::solve_into(
+        &LetoBackend::<T>::default(),
+        operator,
+        &Identity,
+        right_hand_side,
+        solution,
+        workspace,
         policy,
     )
     .expect("well-shaped system");
@@ -151,7 +187,6 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
         report.final_residual_norm,
         report.threshold
     );
-    solution.as_slice().expect("contiguous").to_vec()
 }
 
 /// The mass-weighted `L2` norm of a nodal field over a mesh.
