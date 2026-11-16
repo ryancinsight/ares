@@ -10,6 +10,10 @@
   `boundary.add_consistent_loads(&mut loads)`; keep the nodes alive and
   unmodified while the boundary is in use, and validate a new boundary after
   moving them.
+- [major] `facet_measure`, `TractionFacet` and `TractionBoundary` require
+  `D >= 1` ([ADR 0004](docs/adr/0004-facet-dimension-at-least-one.md)); `D = 0`
+  no longer compiles. Migrate to `D >= 1`: no `D = 0` call ever completed work,
+  because each one panicked at run time.
 
 ### Fixed
 

@@ -32,6 +32,14 @@ fn a_facet_measure_is_its_area_in_three_dimensions() {
 }
 
 #[test]
+fn a_facet_measure_in_one_dimension_is_that_of_a_point() {
+    // `D = 1` is the smallest admitted dimension: a facet is one node and has
+    // no edge, so the Gram determinant is the empty determinant, 1, and the
+    // empty factorial is 1.
+    assert_eq!(ares::boundary::facet_measure(&[[3.0_f64]]), 1.0);
+}
+
+#[test]
 fn a_traction_carries_its_exact_resultant_force() {
     // The first statics identity: sum of nodal loads == t * A.
     let nodes = [[0.0_f64, 0.0], [2.0, 0.0], [2.0, 3.0], [0.0, 3.0]];
