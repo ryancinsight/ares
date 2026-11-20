@@ -1,5 +1,14 @@
 # Ares Gap Audit
 
+## Athena Leto 0.5 provider identity [patch]
+
+Updating Athena alone to `2be05424` fails the `ares-operator` trait
+implementation because the Athena adapter takes crates.io Leto views and
+Ares still loads Git Leto. Select the same published Leto and Leto Ops 0.52
+source in both workspaces. Ares and Harmonia continue to share Athena Core
+0.4 from the same Git workspace. All 120 locked tests pass on Rust 1.95,
+including second-order refinement and the cantilever benchmark.
+
 Risks nobody is fixing in this repository. A planned fix belongs in
 [backlog.md](backlog.md).
 

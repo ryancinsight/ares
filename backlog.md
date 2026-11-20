@@ -1,5 +1,9 @@
 # Ares Backlog
 
+- [patch] Ares and Athena Leto share the crates.io Leto and Leto Ops
+  0.52 identities. Ares, Harmonia, and its Athena adapter share Athena
+  Core from the same Git workspace. The locked suite passes 120 tests.
+
 Open items in priority order. The meta item
 `ATLAS-ARES-PROMOTION-2026-09-03` (atlas `backlog.md#ares-promotion`) owns
 creation, registration and first publication of the repository and is not
