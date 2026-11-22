@@ -89,3 +89,24 @@ inequality.
 A domain that needs a zero-dimensional boundary (a point load on a
 one-node system) would justify a distinct type with its own contract, not a
 relaxed bound here.
+
+## Proposed extension to assembly and coupling
+
+Status of this extension: proposed, 2026-11-22. The accepted facet decision above remains in effect.
+
+At `a75eae35688e` with Rust 1.97.0, `SimplexMesh::<f64, 0, 1>::try_new(&[[]], &[[0]])` and `StructuralInterface::try_new(&[0], &[[]], &mesh)` both succeed. Each call below received fields of the length declared by those constructors. The five runtime cases ran in separate processes.
+
+| Public call at dimension zero | Observed result |
+| --- | --- |
+| `add_body_force` | Panics at `body.rs:79` |
+| `internal_forces` | Panics at `action.rs:66` |
+| `cell_strains` | Panics at `action.rs:131` |
+| `read_traction` | Panics at `interface.rs:152` |
+| `write_displacement` | Panics at `interface.rs:178` |
+| `interface_work` | E0080 in the existing facet assertion during a separate build |
+
+The adjacent valid case was a unit segment with a constant body force of 2. Each linear basis function integrates to 1/2, and the assembled nodal loads were exactly [1, 1].
+
+The proposal restricts construction of the assembly mesh to positive spatial dimensions. Every safe construction of a structural interface takes such a mesh. Review whether a separate interface assertion improves the diagnostic before duplicating the invariant. A point remains a mathematical simplex. The restriction belongs at the assembly boundary that requires a positive nodal field width. Checking each split at runtime would defer a condition already known from the const argument. Supporting point assembly would instead require defining the field and interface semantics for every operation above.
+
+On approval, record the pre-1.0 breaking change, verify the public construction paths at code generation and retain the positive-dimension load oracle.
