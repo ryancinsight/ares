@@ -6,6 +6,7 @@
 - Outcome: Resolve the assembly boundary and obtain review of the proposed Phase 0 scope. Follow the [release scope](docs/adr/0003-release-scope.md) and `M-vessel-wall`.
 - Representative manifest `ares-solid 0.3.0`. Target 1.0.0. Index coverage at review: 0/3 publish-enabled workspace versions.
 - [ ] [patch] Exercise the ARES-ASSEMBLY-DIM-ZERO rejection before chunking. Check both failure behavior and an adjacent valid assembly. Classify any public rejection change under that item's [major] contract.
+- [x] [patch] The six structural coupling tests pass at `bf2086f` against the locked Harmonia `3b164050`. They verify interface work and strain energy, the zero-load solution, nodal export, uniform traction and two invalid exchanges. Exercise this partition inside a real coupled window with Harmonia.
 - [ ] [arch] Review proposed ADR 0003 and its typed-exchange design before opening the architectural slice. Run the Lamé vessel-wall comparison on the host and reference device, then check traction, displacement and stress round trips at both precisions.
 - [ ] [major] Package Solid and Operator in provider order. Coupling's registry check waits for an admitted Harmonia release and must resolve the same published Athena types in a fresh consumer.
 - [ ] [patch] Attach exact-revision evidence for the local exits and this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
