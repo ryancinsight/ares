@@ -25,7 +25,7 @@ aequitas = { version = "0.5.0", default-features = false }
 athena-core = { version = "0.4.0", git = "https://github.com/ryancinsight/athena", default-features = false }
 athena-leto = { version = "0.5.0", git = "https://github.com/ryancinsight/athena", default-features = false }
 eunomia = { version = "0.12.1", default-features = false }
-harmonia = { version = "0.1.0", git = "https://github.com/ryancinsight/harmonia", default-features = false }
+harmonia = { package = "harmonia-coupling", version = "0.1.4", git = "https://github.com/ryancinsight/harmonia", rev = "228279dfb8a623ffe7cabaa5f7cc4c8e4140290b", default-features = false }
 leto = { version = "0.52.0", features = ["std"] }
 leto-ops = { version = "0.52.0", features = ["std"] }
 proteus = { package = "proteus-mat", version = "0.1.0", git = "https://github.com/ryancinsight/proteus", default-features = false }
