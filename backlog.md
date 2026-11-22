@@ -1,5 +1,15 @@
 # Ares Backlog
 
+<a id="ares-stable-qualification"></a>
+## ARES-STABLE-QUALIFICATION — ares stable-release qualification [patch] — todo
+- priority: verification; milestone: M-vessel-wall; basis: `a75eae35688e`.
+- Outcome: Resolve the assembly boundary and obtain review of the proposed Phase 0 scope. Follow the [release scope](docs/adr/0003-release-scope.md) and `M-vessel-wall`.
+- Representative manifest `ares-solid 0.3.0`. Target 1.0.0. Index coverage at review: 0/3 publish-enabled workspace versions.
+- [ ] [patch] Exercise the ARES-ASSEMBLY-DIM-ZERO rejection before chunking. Check both failure behavior and an adjacent valid assembly. Classify any public rejection change under that item's [major] contract.
+- [ ] [arch] Review proposed ADR 0003 and its typed-exchange design before opening the architectural slice. Run the Lamé vessel-wall comparison on the host and reference device, then check traction, displacement and stress round trips at both precisions.
+- [ ] [major] Package Solid and Operator in provider order. Coupling's registry check waits for an admitted Harmonia release and must resolve the same published Athena types in a fresh consumer.
+- [ ] [patch] Attach exact-revision evidence for the local exits and this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
+
 - [patch] Ares and Athena Leto share the crates.io Leto and Leto Ops
   0.52 identities. Ares, Harmonia, and its Athena adapter share Athena
   Core from the same Git workspace. The locked suite passes 120 tests.
