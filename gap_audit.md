@@ -1,5 +1,9 @@
 # Ares Gap Audit
 
+## Verified downstream provider migration
+
+A new external Cargo project resolved the consuming package without a pre-existing lock or provider overrides. Its registry graph includes `horae-time 0.4.0`, `proteus-mat 0.3.0`. The committed lock passes 120 executed tests covering structural verification, analytical solutions and field exchange (0 tests excluded or skipped in that run). Ares pins the migrated Git-only Harmonia source. Its Cargo dependency follows the package name on that source. Harmonia’s registry identity and graduation remain a separate decision.
+
 ## Incremental release baseline
 
 Reviewed [ares-solid 0.3.0](crates/ares/Cargo.toml) at [45346575397b](https://github.com/ryancinsight/ares/tree/45346575397b55d6c6fb71df134498363511daa3). The registry has no entry for this package and version. First publication requires a verified package graph and a clean consumer.
