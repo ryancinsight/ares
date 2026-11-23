@@ -2,14 +2,16 @@
 
 <a id="ares-stable-qualification"></a>
 ## ARES-STABLE-QUALIFICATION — ares stable-release qualification [patch] — todo
-- priority: verification; milestone: M-vessel-wall; basis: `a75eae35688e`.
-- Outcome: Resolve the assembly boundary and obtain review of the proposed Phase 0 scope. Follow the [release scope](docs/adr/0003-release-scope.md) and `M-vessel-wall`.
+- priority: verification; milestone: M-vessel-wall; basis: `45346575397b`.
+- Outcome: Resolve the assembly boundary and obtain review of the proposed Phase 0 scope. Follow the [release scope](docs/adr/0003-release-scope.md) and `M-vessel-wall`. Planning targets for `ares-solid` are 0.3.0 source qualification, then 0.4.0 proposed after scope review, then 1.0.0. Verification alone can advance the current version.
 - Representative manifest `ares-solid 0.3.0`. Target 1.0.0. Index coverage at review: 0/3 publish-enabled workspace versions.
 - [x] [patch] At `a75eae35688e`, a zero-dimensional mesh and interface both construct. Five public operations panic on zero-width chunks. The adjacent unit segment assembles the exact nodal loads [1, 1]. The [proposed ADR 0004 extension](docs/adr/0004-facet-dimension-at-least-one.md#proposed-extension-to-assembly-and-coupling) records the affected paths and the separate compile-time rejection.
 - [x] [patch] The six structural coupling tests pass at `bf2086f` against the locked Harmonia `3b164050`. They verify interface work and strain energy, the zero-load solution, nodal export, uniform traction and two invalid exchanges. Exercise this partition inside a real coupled window with Harmonia.
 - [ ] [arch] Review proposed ADR 0003 and its typed-exchange design before opening the architectural slice. Run the Lamé vessel-wall comparison on the host and reference device, then check traction, displacement and stress round trips at both precisions.
 - [ ] [major] Package Solid and Operator in provider order. Coupling's registry check waits for an admitted Harmonia release and must resolve the same published Athena types in a fresh consumer.
-- [ ] [patch] Attach exact-revision evidence for the local exits and this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
+- [ ] [patch] **0.3.0 source qualification.** Compare wall displacement and traction on the cylinder with the analytical Lamé solution. Retain the adjacent valid element and the zero-dimension reproducer as separate cases. [Source and baseline](gap_audit.md#incremental-release-baseline).
+- [ ] [major] **0.4.0 proposed after scope review.** When the constructor or typed exchange contract changes, migrate the structural caller and verify the interface-work identity over a full coupling window. Record the compatibility delta before packaging Solid or Operator.
+- [ ] [major] **1.0.0-beta.1 → 1.0.0-rc.1 → 1.0.0.** Freeze the supported surface at beta. A fresh structural caller reproduces the cylinder. Coupling’s registry lane additionally requires an admitted Harmonia archive. Repeat the applicable exits on the exact RC before stable promotion. Attach exact-revision evidence for the local exits and this member’s [Atlas qualification criteria](https://github.com/ryancinsight/atlas/blob/17b0124a7548ad81e817284afc5cb115c1d1bc78/docs/parity/repositories.json).
 
 - [patch] Ares and Athena Leto share the crates.io Leto and Leto Ops
   0.52 identities. Ares, Harmonia, and its Athena adapter share Athena
