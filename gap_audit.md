@@ -1,5 +1,11 @@
 # Ares Gap Audit
 
+## Incremental release baseline
+
+Reviewed [ares-solid 0.3.0](crates/ares/Cargo.toml) at [45346575397b](https://github.com/ryancinsight/ares/tree/45346575397b55d6c6fb71df134498363511daa3). The registry has no entry for this package and version. First publication requires a verified package graph and a clean consumer.
+
+The next [patch] checkpoint uses [cylinder](crates/ares-operator/tests/verification/cylinder.rs). [Target version and acceptance criteria](backlog.md#ares-stable-qualification).
+
 ## Athena Leto 0.5 provider identity [patch]
 
 Updating Athena alone to `2be05424` fails the `ares-operator` trait
