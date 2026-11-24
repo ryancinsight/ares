@@ -21,6 +21,7 @@
 )]
 
 mod assembled_operator;
+mod bar;
 mod constitutive;
 mod dirichlet;
 mod element_geometry;

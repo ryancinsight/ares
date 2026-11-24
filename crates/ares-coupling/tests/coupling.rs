@@ -35,6 +35,7 @@ use ares::{DirichletConditions, PrescribedDisplacement, SimplexMesh, TractionFac
 use ares_coupling::{InvalidInterface, StructuralInterface, StructuralPartition};
 use ares_operator::ConstrainedStiffness;
 use athena_core::ConvergencePolicy;
+use eunomia::RealField;
 use harmonia::Partition as _;
 use proteus::IsotropicModuli;
 
@@ -286,4 +287,45 @@ fn a_uniform_normal_traction_extends_the_strip() {
         mean_extension > closed_form * 0.5 && mean_extension < closed_form * 1.5,
         "extension {mean_extension:.6e} is far from the bar closed form {closed_form:.6e}"
     );
+}
+
+fn assert_a_point_interface_on_a_bar_exchanges_exactly<T: RealField>() {
+    // A unit bar `[0, 1]` whose end node 1 carries the interface. In one
+    // dimension a facet is the single node it touches, so the exchange is one
+    // traction in and one displacement out.
+    let nodes = [[T::from_f64(0.0)], [T::from_f64(1.0)]];
+    let mesh = SimplexMesh::try_new(&nodes, &[[0, 1]]).expect("invariant: the bar has length 1");
+    let interface = StructuralInterface::try_new(&[1], &[[1]], &mesh)
+        .expect("invariant: the facet names the interface node");
+    assert_eq!(interface.input_dimension(), 1);
+    assert_eq!(interface.output_dimension(), 1);
+
+    let traction = [T::from_f64(5.0)];
+    let mut facets = [TractionFacet::new([0_usize], [T::from_f64(0.0)])];
+    interface
+        .read_traction(&traction, &mut facets)
+        .expect("invariant: one facet carries one traction component");
+    assert_eq!(facets, [TractionFacet::new([1], traction)]);
+
+    let state = [T::from_f64(0.0), T::from_f64(3.0)];
+    let mut exported = [T::from_f64(0.0)];
+    interface
+        .write_displacement(&state, &mut exported)
+        .expect("invariant: the state holds two 1-D nodes");
+    assert_eq!(exported, [T::from_f64(3.0)]);
+
+    // A force of 5 on the end node moves through the displacement 3: the work
+    // is 15, with facet measure 1 and the divisor `D = 1`.
+    assert_eq!(
+        interface
+            .interface_work(&mesh, &traction, &state)
+            .expect("invariant: the traction has one facet"),
+        T::from_f64(15.0)
+    );
+}
+
+#[test]
+fn a_point_interface_on_a_bar_exchanges_exactly() {
+    assert_a_point_interface_on_a_bar_exchanges_exactly::<f32>();
+    assert_a_point_interface_on_a_bar_exchanges_exactly::<f64>();
 }
