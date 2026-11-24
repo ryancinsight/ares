@@ -31,6 +31,8 @@ proteus.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
+tracing = "0.1"
+tracing-subscriber = "0.3"
 
 [features]
 default = ["std"]
@@ -38,3 +40,7 @@ std = ["aequitas/std", "eunomia/std", "proteus/std"]
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "symmetric_projection"
+harness = false

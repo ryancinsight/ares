@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "ares-coupling"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "aequitas",
  "ares-operator",
@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "ares-operator"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "aequitas",
  "ares-solid",
@@ -101,12 +101,14 @@ dependencies = [
 
 [[package]]
 name = "ares-solid"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "aequitas",
  "eunomia",
  "proptest",
  "proteus-mat",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

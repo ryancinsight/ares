@@ -50,17 +50,24 @@ impl<T: RealField, const D: usize> SymmetricTensor<T, D> {
     /// That exactness is what makes an infinitesimal rigid rotation produce
     /// exactly zero strain, which is asserted rather than approximated in the
     /// rigid-body test.
+    #[inline]
     #[must_use]
     pub fn from_symmetrised(general: &[[T; D]; D]) -> Self {
-        let two = <T as NumericElement>::ONE + <T as NumericElement>::ONE;
-        let mut components = [[<T as NumericElement>::ZERO; D]; D];
-        for (i, row) in components.iter_mut().enumerate() {
-            for (j, entry) in row.iter_mut().enumerate() {
-                // Both operands are read from the input; `general` is indexed
-                // only at `i`/`j` already proven in range by the iterators.
-                let upper = general[i][j];
+        let half = T::ONE / (T::ONE + T::ONE);
+        let mut components = *general;
+        for (i, row) in general.iter().enumerate() {
+            for (j, &upper) in row.iter().enumerate().skip(i + 1) {
                 let lower = general[j][i];
-                *entry = (upper + lower) / two;
+                let sum = upper + lower;
+                // A finite sum preserves subnormal ties. If finite operands
+                // overflow their sum, both can be halved exactly.
+                let mean = if sum.abs() == T::INFINITY {
+                    upper * half + lower * half
+                } else {
+                    sum * half
+                };
+                components[i][j] = mean;
+                components[j][i] = mean;
             }
         }
         Self { components }
