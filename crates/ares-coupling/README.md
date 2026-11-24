@@ -103,8 +103,7 @@ With traction constant per facet and displacement linear over it, the facet
 integral equals `sum u_a . f_a` over the consistent nodal load, so the identity
 holds at any resolution up to the solve's residual: the test
 `interface_work_equals_the_strain_energy` asserts a relative difference below
-`1e-9`. A lumped load with the same resultant force would not satisfy it
-(derivation in the `StructuralInterface` documentation).
+`1e-9`. The derivation is in the `StructuralInterface` documentation.
 
 ## Licence
 
