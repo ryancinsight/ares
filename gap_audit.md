@@ -10,6 +10,26 @@ Reviewed [ares-solid 0.3.0](crates/ares/Cargo.toml) at [45346575397b](https://gi
 
 The next [patch] checkpoint uses [cylinder](crates/ares-operator/tests/verification/cylinder.rs). [Target version and acceptance criteria](backlog.md#ares-stable-qualification).
 
+## Symmetric projection [patch]
+
+At `a75eae35`, averaging two maximum finite entries returned infinity.
+A 3×3 projection now computes three distinct off-diagonal means and
+copies its three diagonal entries. The previous full traversal computed
+nine means. The oracle compares native precision results with the
+standard midpoint operation, including ties adjacent to zero. All 121
+locked workspace tests pass, as do strict all-target Clippy and the
+no-default-features Solid build. The Solid compatibility check passed
+196 rules and skipped 57. A standalone consumer could not find
+`ares-solid = "=0.3.1"` in the registry.
+
+Run `cargo bench --locked -p ares-solid --bench symmetric_projection`
+for 15 samples of 1,048,576 binary64 3D projections. Median times on
+this host were 1.439 ns per projection and 3.439 ns for the full matrix
+midpoint reference. Applying the same input workload to the original
+unchecked implementation and candidate in separate executables measured
+1.225 and 1.456 ns respectively. The finite-range check costs about
+0.23 ns per projection against the original arithmetic on these inputs.
+
 ## Athena Leto 0.5 provider identity [patch]
 
 Updating Athena alone to `2be05424` fails the `ares-operator` trait

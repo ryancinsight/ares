@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1] - Unreleased
+
+### Fixed
+
+- [patch] Symmetric projection preserves the diagonal and computes each
+  off-diagonal midpoint once. Finite inputs retain finite means even
+  when their sum overflows in the selected precision.
+
 ## [0.3.0] - Unreleased
 
 ### Changed

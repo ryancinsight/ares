@@ -245,3 +245,52 @@ proptest::proptest! {
         );
     }
 }
+
+#[test]
+fn symmetric_projection_matches_rounded_midpoints_across_the_scalar_range() {
+    use proptest::{prop_assert_eq, test_runner::TestRunner};
+    let subscriber = tracing_subscriber::fmt()
+        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::FULL)
+        .with_test_writer()
+        .finish();
+    tracing::subscriber::with_default(subscriber, || {
+        let mut runner = tracing::info_span!("arrange").in_scope(TestRunner::default);
+        let projection = |a, b| SymmetricTensor::from_symmetrised(&[[a, a], [b, b]]);
+        let max = f64::MAX;
+        let min = f64::from_bits(1);
+        for (a, b) in [
+            (max, max),
+            (-max, -max),
+            (max, -max),
+            (max, max.next_down()),
+            (min, 2.0 * min),
+            (0.0, min),
+            (min, min),
+        ] {
+            let got = tracing::info_span!("act", a, b).in_scope(|| projection(a, b));
+            tracing::info_span!("assert").in_scope(|| {
+                let m = a.midpoint(b);
+                assert_eq!(*got.components(), [[a, m], [m, b]]);
+            });
+        }
+        runner
+            .run(
+                &(proptest::num::u64::ANY, proptest::num::u64::ANY),
+                |(a, b)| {
+                    let (x, y) = (f64::from_bits(a), f64::from_bits(b));
+                    if x.is_finite() && y.is_finite() {
+                        let m = x.midpoint(y);
+                        prop_assert_eq!(*projection(x, y).components(), [[x, m], [m, y]]);
+                    }
+                    let (x, y) = (f32::from_bits(a as u32), f32::from_bits(b as u32));
+                    if x.is_finite() && y.is_finite() {
+                        let m = x.midpoint(y);
+                        let stress = SymmetricTensor::from_symmetrised(&[[x, x], [y, y]]);
+                        prop_assert_eq!(*stress.components(), [[x, m], [m, y]]);
+                    }
+                    Ok(())
+                },
+            )
+            .expect("finite projections agree with the native midpoint oracle");
+    });
+}

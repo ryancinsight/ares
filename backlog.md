@@ -162,3 +162,6 @@ Evidence below was read at `basis:` unless stated otherwise.
 - Re-open trigger: a `proteus-mat` release on eunomia 0.12 and a `leto-ops` 0.47 release are published by their owners. First publication of `ares-solid` is the A9 Ask-User step of atlas `backlog/ares-promotion.md`; `ares-operator` follows it (ADR 0001:82-83); `ares-coupling` waits on `harmonia` graduation (`gap_audit.md#ARES-COUPLING-PUBLISH-CLOSURE`).
 - Outcome and acceptance: `cargo package --locked` verification passes for each publishable crate against registry providers, with no provider back-pin and no reduced test gate.
 - Next step: when the trigger fires, run `cargo package --locked` for each publishable crate against the registry and record the result here; the E0277 PR #73 reports is not re-run.
+
+- [patch] Symmetric tensor projection passes the binary32/binary64 midpoint
+  oracle for finite inputs including range endpoints and subnormal ties.
