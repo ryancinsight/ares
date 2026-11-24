@@ -27,7 +27,10 @@ coordinates and connectivity satisfies it.
 
 `try_new` refuses every cell assembly could not integrate: a node index outside
 the mesh, a cell with no measure, a cell wound the wrong way, coordinates that
-are not finite.
+are not finite. A mesh with no spatial dimension, `D = 0`, is a compile error
+rather than a run-time one, because a field with zero components per node has
+no nodal view
+([ADR 0004](https://github.com/ryancinsight/ares/blob/main/docs/adr/0004-facet-dimension-at-least-one.md)).
 
 It establishes this by running the *same* `shape_gradients` call assembly will
 run, rather than inferring success from the measure. The two share a

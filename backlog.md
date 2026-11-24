@@ -5,7 +5,7 @@
 - priority: verification; milestone: M-vessel-wall; basis: `45346575397b`.
 - Outcome: Resolve the assembly boundary and obtain review of the proposed Phase 0 scope. Follow the [release scope](docs/adr/0003-release-scope.md) and `M-vessel-wall`. Planning targets for `ares-solid` are 0.3.0 source qualification, then 0.4.0 proposed after scope review, then 1.0.0. Verification alone can advance the current version. Use Proteus Mat 0.3.0 and Horae Time 0.4.0 through Harmonia for the [verified downstream contract](gap_audit.md#verified-downstream-provider-migration).
 - Representative manifest `ares-solid 0.3.0`. Target 1.0.0. Index coverage at review: 0/3 publish-enabled workspace versions.
-- [x] [patch] At `a75eae35688e`, a zero-dimensional mesh and interface both construct. Five public operations panic on zero-width chunks. The adjacent unit segment assembles the exact nodal loads [1, 1]. The [proposed ADR 0004 extension](docs/adr/0004-facet-dimension-at-least-one.md#proposed-extension-to-assembly-and-coupling) records the affected paths and the separate compile-time rejection.
+- [x] [patch] At `a75eae35688e`, a zero-dimensional mesh and interface both construct. Five public operations panic on zero-width chunks. The adjacent unit segment assembles the exact nodal loads [1, 1]. The [ADR 0004 extension](docs/adr/0004-facet-dimension-at-least-one.md#extension-to-assembly-and-coupling) records the affected paths and the compile-time rejection.
 - [x] [patch] The six structural coupling tests pass at `bf2086f` against the locked Harmonia `3b164050`. They verify interface work and strain energy, the zero-load solution, nodal export, uniform traction and two invalid exchanges. Exercise this partition inside a real coupled window with Harmonia.
 - [ ] [arch] Review proposed ADR 0003 and its typed-exchange design before opening the architectural slice. Run the Lamé vessel-wall comparison on the host and reference device, then check traction, displacement and stress round trips at both precisions.
 - [ ] [major] Package Solid and Operator in provider order. Coupling's registry check waits for an admitted Harmonia release and must resolve the same published Athena types in a fresh consumer.
@@ -46,16 +46,6 @@ Evidence below was read at `basis:` unless stated otherwise.
 - standing: no open `correctness` item; the ares conformance baseline total is 0; the SemVer gate passes for `ares-solid`, `ares-operator` and `ares-coupling` with `cargo semver-checks --baseline-rev` at the `M-vessel-wall` closing commit its release item names, and against the crates.io release of each published crate; `cargo publish --dry-run --locked` passes for `ares-solid`, then `ares-operator`, against registry providers; README build: every `crates/*/src/lib.rs` carries `#![doc = include_str!("../README.md")]` and `cargo test --doc --locked` passes; `cargo build --examples --locked` and `mdbook test docs/book` pass.
 - needs: M-vessel-wall (it extends the typed traction marshalling the strip test introduces).
 - Non-goals: two-way coupling, non-conforming transfer, accelerator devices, later-phase physics, publishing `ares-coupling` (it follows `harmonia` graduation).
-
-<a id="ARES-ASSEMBLY-DIM-ZERO"></a>
-## ARES-ASSEMBLY-DIM-ZERO — Reject a zero dimension in the assembly and coupling chunk sites [major] — todo
-- priority: verification; milestone: M-vessel-wall; needs: none; basis: 0123857891cc65a5d8f842123f27339c19f9d430
-- scope: `crates/ares/src/assembly/mesh.rs`, `action.rs`, `body.rs`, `crates/ares-coupling/src/interface.rs`, `docs/adr/0004-facet-dimension-at-least-one.md`, `CHANGELOG.md`.
-- Reproduced at `a75eae35688e` with Rust 1.97.0. A point mesh and its structural interface both construct. Body load, internal forces, cell strains, traction read and displacement write panic at their first zero-width split. Interface work fails to compile through the existing facet guard. See [the ADR evidence](docs/adr/0004-facet-dimension-at-least-one.md#proposed-extension-to-assembly-and-coupling).
-- Outcome: each site that admits `D = 0` is run once at `D = 0` and recorded; those that panic reject `D = 0` at compile time through one `const { assert!(D >= 1, ...) }` at the type's constructor (`SimplexMesh::try_new`, `StructuralInterface::try_new`), with a `compile_fail` doctest each and ADR 0004 extended in place.
-- Acceptance: a `compile_fail` doctest instantiates `SimplexMesh::<f64, 0, 1>::try_new` and one `StructuralInterface::<0>::try_new`; each marker-free copy fails with E0080 once, output recorded in the PR.
-- API: public break, same class and migration note as ADR 0004.
-- Next step: review the proposed breaking constructor boundary, then add the build-failure and adjacent positive-dimension regressions with the implementation.
 
 <a id="ARES-FLOOR-VALUE-TESTS"></a>
 ## ARES-FLOOR-VALUE-TESTS — Pin residual_floor's reference term and retire its unsupported claims [patch] — todo

@@ -19,6 +19,13 @@
   facet panicked at run time, and `TractionBoundary::<f64, 0>::try_new(&[],
   &[[]])` returned `Ok`; that call now fails to compile.
 
+- [major] `SimplexMesh::try_new` and `StructuralInterface::try_new` reject
+  `D = 0` at compile time ([ADR 0004](docs/adr/0004-facet-dimension-at-least-one.md)).
+  Migrate to `D >= 1`. Before, both returned `Ok` at `D = 0` and `add_body_force`,
+  `internal_forces`, `cell_strains`, `read_traction` and `write_displacement`
+  panicked at their first zero-width split, while `interface_work` already
+  failed to compile through `facet_measure`.
+
 ### Fixed
 
 - Assembly can no longer read nodes other than the validated ones. A shorter

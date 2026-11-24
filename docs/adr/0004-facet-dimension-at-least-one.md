@@ -5,6 +5,9 @@
 - **Driver:** board item `ARES-FACET-DIM-ZERO`, delivered by PR #87
 - **Class:** `[major]` — a call that compiled stops compiling, workspace
   0.3.0 under Cargo's leftmost-nonzero rule (the release of ADR 0002).
+- **Revision:** 2026-11-24, PR #102 (`ARES-ASSEMBLY-DIM-ZERO`): the contract
+  extends to `SimplexMesh` and `StructuralInterface`; the facet decision is
+  unchanged.
 - **Correction:** the `BREAKING CHANGE` footer of the commit titled
   `fix(ares): Reject a zero facet dimension` says `TractionFacet` no longer
   compiles at `D = 0` and that no `D = 0` call ever completed work. Both are
@@ -77,8 +80,8 @@ inequality.
   panicked at run time, except `try_new(&[], &[[]])`, which returned `Ok`
   and now fails to compile. The migration is `D >= 1`.
 - `TractionFacet::<_, 0>::new` still compiles and runs.
-- The other `as_chunks::<D>` and `as_chunks_mut::<D>` sites in `ares` and
-  `ares-coupling` are outside this decision.
+- The `as_chunks::<D>` and `as_chunks_mut::<D>` sites of assembly and coupling
+  are covered by the extension below.
 - `cargo-semver-checks` compares rustdoc JSON, whose `Function` item carries
   `sig`, `generics`, `header`, `has_body` and `default_unstable` but no body
   (rustdoc-types 0.61.0, `src/lib.rs:1209-1224`), so the doctest pair, not the
@@ -90,23 +93,52 @@ A domain that needs a zero-dimensional boundary (a point load on a
 one-node system) would justify a distinct type with its own contract, not a
 relaxed bound here.
 
-## Proposed extension to assembly and coupling
+## Extension to assembly and coupling
 
-Status of this extension: proposed, 2026-11-22. The accepted facet decision above remains in effect.
+`D >= 1` is also the contract of `SimplexMesh` and `StructuralInterface`. A
+field carries `D` components per node and is read as `D`-wide chunks, and a
+zero width has no nodal view. Each constructor holds one inline `const`
+assertion of the same form as `facet_measure`, with its own message, so the
+E0080 names the type: `SimplexMesh::try_new` ("a mesh needs at least one
+spatial dimension") and `StructuralInterface::try_new` ("an interface needs at
+least one spatial dimension").
 
-At `a75eae35688e` with Rust 1.97.0, `SimplexMesh::<f64, 0, 1>::try_new(&[[]], &[[0]])` and `StructuralInterface::try_new(&[0], &[[]], &mesh)` both succeed. Each call below received fields of the length declared by those constructors. The five runtime cases ran in separate processes.
+At `D = 0` the calls ran as follows. Both constructors returned `Ok`, so the
+failure surfaced only at the first operation. The five panics ran in one debug
+build, each under `catch_unwind`, with the message `chunk size must be
+non-zero`; `interface_work` ran in a separate build.
 
-| Public call at dimension zero | Observed result |
-| --- | --- |
-| `add_body_force` | Panics at `body.rs:79` |
-| `internal_forces` | Panics at `action.rs:66` |
-| `cell_strains` | Panics at `action.rs:131` |
-| `read_traction` | Panics at `interface.rs:152` |
-| `write_displacement` | Panics at `interface.rs:178` |
-| `interface_work` | E0080 in the existing facet assertion during a separate build |
+| Call at `D = 0` | Before PR #102 | After PR #102 |
+| --- | --- | --- |
+| `SimplexMesh::try_new(&[[]], &[[0]])` | `Ok` | E0080 |
+| `StructuralInterface::try_new(&[0], &[[]], &mesh)` | `Ok` | E0080 |
+| `add_body_force` | panics, `body.rs:79` | E0080 at `try_new` |
+| `internal_forces` | panics, `action.rs:66` | E0080 at `try_new` |
+| `cell_strains` | panics, `action.rs:131` | E0080 at `try_new` |
+| `read_traction` | panics, `interface.rs:153` | E0080 at `try_new` |
+| `write_displacement` | panics, `interface.rs:179` | E0080 at `try_new` |
+| `interface_work` | E0080 in `facet_measure`, `interface.rs:237` | E0080 at `try_new` |
 
-The adjacent valid case was a unit segment with a constant body force of 2. Each linear basis function integrates to 1/2, and the assembled nodal loads were exactly [1, 1].
+Every safe path to the operations above goes through one of the two
+constructors, because both types keep their fields private. The adjacent
+`D = 1` bar is retained as value oracles, `oracles::bar` for the mesh and
+`a_point_interface_on_a_bar_exchanges_exactly` for the interface: a unit bar
+under a body force of 2 assembles the exact nodal loads `[1, 1]`.
 
-The proposal restricts construction of the assembly mesh to positive spatial dimensions. Every safe construction of a structural interface takes such a mesh. Review whether a separate interface assertion improves the diagnostic before duplicating the invariant. A point remains a mathematical simplex. The restriction belongs at the assembly boundary that requires a positive nodal field width. Checking each split at runtime would defer a condition already known from the const argument. Supporting point assembly would instead require defining the field and interface semantics for every operation above.
+The interface assertion is redundant for a caller that obtains its mesh from
+`SimplexMesh::try_new`, because that constructor already rejects `D = 0`. It
+is kept for the diagnostic and so the invariant holds if the mesh bound is
+relaxed; its `compile_fail` example builds no mesh, so only the interface
+assertion can fail it.
 
-On approval, record the pre-1.0 breaking change, verify the public construction paths at code generation and retain the positive-dimension load oracle.
+**Alternatives rejected.** A typed error: `D` is a type-level constant, so a
+check at run time reports a defect the caller fixed at the call site. A check
+at each split: it defers a condition already known from the const argument.
+Point assembly: it needs the field and interface semantics defined for every
+operation above, and this decision defines none.
+
+**Consequences.** Breaking, `[major]` before 1.0:
+`SimplexMesh::<_, 0, N>::try_new` and `StructuralInterface::<0>::try_new` no
+longer compile. The migration is `D >= 1`. The E0080 is raised at
+instantiation, as for `facet_measure` above, so the two `compile_fail`
+doctests, not `cargo check` or the SemVer gate, pin the break.

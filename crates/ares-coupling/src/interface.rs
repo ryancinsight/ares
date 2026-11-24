@@ -43,6 +43,25 @@ use eunomia::{NumericElement, RealField};
 /// `|A_f| / D` over a simplex facet, so the consistent load of a constant
 /// traction equals an equal split of the facet resultant, and this identity
 /// does not distinguish the two.
+///
+/// # Dimension
+///
+/// `D` is at least 1: an exchange is read as `D`-wide chunks, and a zero width
+/// has none. [`StructuralInterface::try_new`] rejects `D = 0` when it is
+/// instantiated. The mesh it takes is already built for `D >= 1`
+/// ([`SimplexMesh::try_new`]), so this assertion names the interface in the
+/// diagnostic and holds if the mesh bound is ever relaxed. The example never
+/// builds a mesh, so only the interface assertion can fail it:
+///
+/// ```compile_fail,E0080
+/// use ares::SimplexMesh;
+/// use ares_coupling::StructuralInterface;
+///
+/// fn couple(mesh: &SimplexMesh<'_, f64, 0, 1>) {
+///     let _ = StructuralInterface::<0>::try_new(&[0], &[[]], mesh);
+/// }
+/// let _: fn(&SimplexMesh<'_, f64, 0, 1>) = couple;
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub struct StructuralInterface<'mesh, const D: usize> {
     nodes: &'mesh [usize],
@@ -60,11 +79,18 @@ impl<'mesh, const D: usize> StructuralInterface<'mesh, D> {
     /// conforming interface (atlas ADR 0059), so a non-conforming one is
     /// rejected here rather than silently transferred — the failure the
     /// conformity oracle exists to force.
+    ///
+    /// # Panics
+    ///
+    /// Does not panic at runtime. The `const` block fails compilation when
+    /// `D == 0`.
     pub fn try_new<T: RealField, const N: usize>(
         nodes: &'mesh [usize],
         facets: &'mesh [[usize; D]],
         mesh: &SimplexMesh<'_, T, D, N>,
     ) -> Result<Self, InvalidInterface> {
+        const { assert!(D >= 1, "an interface needs at least one spatial dimension") }
+
         if nodes.is_empty() {
             return Err(InvalidInterface::NoNodes);
         }

@@ -38,6 +38,19 @@ use crate::element::Simplex;
 /// so a mesh with mixed winding assembles an indefinite operator — one that
 /// stores negative energy under deformation, and on which conjugate gradients
 /// has no reason to converge.
+///
+/// # Dimension
+///
+/// `D` is at least 1. A field carries `D` components per node, and the flat
+/// field is read as `D`-wide chunks, so a zero width has no nodal view.
+/// [`SimplexMesh::try_new`] rejects `D = 0` when it is instantiated, so a
+/// zero-dimensional mesh is a compile error and not a run-time panic in the
+/// first operation that splits a field:
+///
+/// ```compile_fail,E0080
+/// use ares::SimplexMesh;
+/// let _ = SimplexMesh::<f64, 0, 1>::try_new(&[[]], &[[0]]);
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub struct SimplexMesh<'mesh, T, const D: usize, const N: usize> {
     nodes: &'mesh [[T; D]],
@@ -56,12 +69,13 @@ impl<'mesh, T: RealField, const D: usize, const N: usize> SimplexMesh<'mesh, T, 
     ///
     /// # Panics
     ///
-    /// Does not panic at runtime. The `const` block fails compilation when
-    /// `N != D + 1`.
+    /// Does not panic at runtime. The `const` blocks fail compilation when
+    /// `D == 0` or `N != D + 1`.
     pub fn try_new(
         nodes: &'mesh [[T; D]],
         cells: &'mesh [[usize; N]],
     ) -> Result<Self, InvalidMesh> {
+        const { assert!(D >= 1, "a mesh needs at least one spatial dimension") }
         const { assert!(N == D + 1, "a simplex in D dimensions has D + 1 nodes") }
 
         if nodes.is_empty() {
