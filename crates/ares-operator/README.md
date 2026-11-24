@@ -85,10 +85,11 @@ assert!(displacement[2] > 0.0 && displacement[4] > 0.0);
 
 `LinearOperator::apply` must return the backend's error type. For the host
 backend that is `LetoBackendError`, a `#[non_exhaustive]` enum in `athena-leto`
-0.5.0 with no variant for a degenerate element. `SimplexMesh::try_new`
-establishes that every cell integrates, and the Dirichlet conditions are
-validated against the mesh, so an operator that exists can fail only on the
-vectors a caller passes:
+with no variant for a degenerate element. `SimplexMesh::try_new` establishes
+that every cell integrates. `DirichletConditions::try_new` checks conditions
+against the node count it is given and `ConstrainedStiffness::new` does not
+compare that count with the mesh, so pass `mesh.node_count()`. Then the
+operator can fail only on the vectors a caller passes:
 
 - `apply` returns `LetoBackendError::NonContiguousVector` for a strided input
   or output view, and `LetoBackendError::LengthMismatch` when a vector does not

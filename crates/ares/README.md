@@ -66,8 +66,9 @@ Chartered for Phase 0 and not yet implemented: principal stresses and a Gaia
 mesh producer. Static equilibrium `f_int(u) = f_ext` is delivered as its two
 halves: `SimplexMesh::internal_forces` is `f_int`, and
 `SimplexMesh::add_body_force` and `TractionBoundary::add_consistent_loads` add
-into `f_ext`. No function returns their difference. The solve is in
-`ares-operator`.
+into `f_ext`. Ares does not evaluate `f_ext - f_int(u)` at an arbitrary
+displacement: `SimplexMesh::constrained_load` forms it only at the prescribed
+displacements. The solve is in `ares-operator`.
 
 Not in Phase 0: plasticity, viscoelasticity, hyperelasticity, finite
 deformation, contact, dynamics, fracture, fatigue, anisotropy, buckling. Each
