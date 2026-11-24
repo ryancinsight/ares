@@ -112,8 +112,8 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
 
 ## Alternatives rejected
 
-- **1.0 at the current surface.** The crate README would still claim principal
-  stresses, and nothing would show a path through Gaia or a device.
+- **1.0 at the current surface.** The crate README would still list principal
+  stresses as not implemented, and nothing would show a path through Gaia or a device.
 - **Device solve as its own later milestone.** It leaves the largest risk
   second and the first milestone short of a named seam.
 - **Device-resident element kernels instead of CSR.** That puts per-backend

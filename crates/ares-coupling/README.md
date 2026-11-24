@@ -10,9 +10,12 @@ fluid half by a Harmonia driver.
 
 ## Installation
 
+Not published to crates.io: it depends on `harmonia`, which is
+`publish = false`. Depend on it from Git:
+
 ```toml
 [dependencies]
-ares-coupling = "0.3.0"
+ares-coupling = { git = "https://github.com/ryancinsight/ares" }
 ```
 
 ## Usage

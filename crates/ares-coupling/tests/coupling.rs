@@ -18,9 +18,9 @@
 //!
 //! With traction constant per facet and displacement linear over it,
 //! `integral(t . u) dS` collapses to `sum_a u_a . f_a` where `f_a` is exactly
-//! the consistent nodal load. So the identity is exact — *because* the load is
-//! the consistent one. A lumped load carries the same resultant force and
-//! breaks it, which is the mutation this oracle is measured against.
+//! the consistent nodal load. So the identity is exact. For a constant traction
+//! on a simplex facet the consistent load equals an equal split of the
+//! resultant, so this oracle does not distinguish the two.
 
 #![expect(
     clippy::cast_precision_loss,

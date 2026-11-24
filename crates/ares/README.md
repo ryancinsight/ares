@@ -57,12 +57,16 @@ Phase 0 is **small-strain linear elastostatics on an unstructured mesh**
 - kinematics — small strain from a displacement gradient, symmetric tensors;
 - stress — Cauchy stress, mean stress, deviator, second invariant, von Mises;
 - constitutive coupling — isotropic Hooke over `proteus::IsotropicModuli`;
-- discretisation — linear simplices over a borrowed `SimplexMesh`;
+- discretisation — continuous-Galerkin linear simplices over a borrowed
+  `SimplexMesh`;
 - assembly — matrix-free stiffness action, cell strains, body loads;
 - boundary conditions — Dirichlet and Neumann as typed conditions.
 
-Chartered for Phase 0 and not yet implemented: principal stresses, a static
-equilibrium residual, and a Gaia mesh producer. The solve is in
+Chartered for Phase 0 and not yet implemented: principal stresses and a Gaia
+mesh producer. Static equilibrium `f_int(u) = f_ext` is delivered as its two
+halves: `SimplexMesh::internal_forces` is `f_int`, and
+`SimplexMesh::add_body_force` and `TractionBoundary::add_consistent_loads` add
+into `f_ext`. No function returns their difference. The solve is in
 `ares-operator`.
 
 Not in Phase 0: plasticity, viscoelasticity, hyperelasticity, finite
@@ -88,10 +92,15 @@ stiffness columns, and traction resultants. The solve-level oracles live in
 energy against external work, cantilever tip deflection, and the Lame
 thick-walled cylinder.
 
-Scalar coverage differs by oracle. Rigid-body motion, the manufactured
-solution and the energy identity run at `f32` and `f64`. The patch test runs at
-`f64` on every patch and at `f32` on the distorted 2-D patch. The Lame
-cylinder, the cantilever and the convergence order run at `f64` only.
+Scalar coverage differs by oracle. At `f32` and `f64`: strain-free and
+stress-free rigid motion, force-free translation of a single triangle, the
+rejection of a one-node traction slice and of coincident traction nodes, the
+manufactured solution and the energy identity. The patch test runs at `f64` on
+every patch and at `f32` on the distorted 2-D patch. At `f64` only: the
+unit-triangle rotation and tetrahedron rigid motions, the assembled-mesh
+translation, the rigid-motion property tests, Hooke's closed forms, the
+hand-computed stiffness columns, the traction resultants, the Lame cylinder,
+the cantilever and the convergence order.
 
 ## Substrate
 

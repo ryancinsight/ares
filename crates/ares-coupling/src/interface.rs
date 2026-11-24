@@ -39,9 +39,10 @@ use eunomia::{NumericElement, RealField};
 ///
 /// where `f_a = t_f |A_f| / D` is exactly the consistent nodal load Ares
 /// already computes. The interface work identity is therefore an equality
-/// rather than an approximation — and it is an equality *because* the load is
-/// the consistent one. A lumped load would carry the same total force and
-/// break this.
+/// rather than an approximation. Each barycentric shape function integrates to
+/// `|A_f| / D` over a simplex facet, so the consistent load of a constant
+/// traction equals an equal split of the facet resultant, and this identity
+/// does not distinguish the two.
 #[derive(Clone, Copy, Debug)]
 pub struct StructuralInterface<'mesh, const D: usize> {
     nodes: &'mesh [usize],

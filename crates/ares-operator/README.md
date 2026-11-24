@@ -81,15 +81,22 @@ assert_eq!(displacement[6..], [0.0, 0.0]);
 assert!(displacement[2] > 0.0 && displacement[4] > 0.0);
 ```
 
-## Why the operator carries no fallible path of its own
+## Failure modes
 
 `LinearOperator::apply` must return the backend's error type. For the host
-backend that is `LetoBackendError`, a `#[non_exhaustive]` enum with no variant
-for a degenerate element (`athena-leto` at `2be0542`, `src/error.rs:4-50`).
-`SimplexMesh::try_new` establishes that every cell integrates, and the
-Dirichlet conditions are validated against the mesh, so by the time an
-operator exists the only failures left are shape mismatches, which
-`LetoBackendError::LengthMismatch` names exactly.
+backend that is `LetoBackendError`, a `#[non_exhaustive]` enum in `athena-leto`
+0.5.0 with no variant for a degenerate element. `SimplexMesh::try_new`
+establishes that every cell integrates, and the Dirichlet conditions are
+validated against the mesh, so an operator that exists can fail only on the
+vectors a caller passes:
+
+- `apply` returns `LetoBackendError::NonContiguousVector` for a strided input
+  or output view, and `LetoBackendError::LengthMismatch` when a vector does not
+  hold one entry per degree of freedom;
+- `load` and `residual_floor` return `LetoBackendError::LengthMismatch` for the
+  same length error.
+
+`new`, `dimension` and the accessors cannot fail.
 
 ## Residual floor
 
