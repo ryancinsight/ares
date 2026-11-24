@@ -94,7 +94,7 @@ core publishes as **`ares-solid`** while the import path stays `ares` through
 
 ```toml
 [dependencies]
-ares = { package = "ares-solid", version = "0.1.0" }
+ares = { package = "ares-solid", version = "0.3.0" }
 ```
 
 The convention `proteus-mat` and `gaia-mesh` follow. It is worth knowing about

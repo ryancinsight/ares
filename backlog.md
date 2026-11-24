@@ -57,15 +57,6 @@ Evidence below was read at `basis:` unless stated otherwise.
 - API: public break, same class and migration note as ADR 0004.
 - Next step: review the proposed breaking constructor boundary, then add the build-failure and adjacent positive-dimension regressions with the implementation.
 
-<a id="ARES-CRATE-README-DOCS"></a>
-## ARES-CRATE-README-DOCS — Build each crate README as its crate docs [patch] — todo
-- priority: verification; milestone: M-vessel-wall; needs: none; basis: ea52d101fbdaf78fb1f630299983d4d63c100d0c
-- scope: `crates/*/README.md`, `crates/*/src/lib.rs`
-- Defect (read at basis): `git grep -n include_str -- 'crates/*/src/lib.rs'` has 0 hits, so no gate compiles a README; the install snippets say `0.1.0` (`crates/ares/README.md:19`, `crates/ares-operator/README.md:23`) while the manifest is 0.3.0; `crates/ares/README.md:46` says every oracle runs at `f32` and `f64`, while the Lamé and cantilever oracles (`verification/cylinder.rs`, `structural.rs`) are `f64` only.
-- Outcome: each crate's rustdoc front page is its README, the snippets name the manifest version, and the scalar claim matches the tested oracles.
-- Acceptance: `git grep -l 'include_str!("../README.md")' -- 'crates/*/src/lib.rs'` lists all 3 crate roots; `cargo test --doc --locked` and `cargo doc --no-deps --locked` pass; `git grep -n '0\.1\.0' -- 'crates/*/README.md'` is empty.
-- Next step: merge each crate root's `//!` overview into its README, then replace it with `#![doc = include_str!("../README.md")]`.
-
 <a id="ARES-FLOOR-VALUE-TESTS"></a>
 ## ARES-FLOOR-VALUE-TESTS — Pin residual_floor's reference term and retire its unsupported claims [patch] — todo
 - priority: verification; milestone: M-vessel-wall; needs: none; basis: 0ea279f9b3957e4af904a0efa5fbc03cd4219fb6

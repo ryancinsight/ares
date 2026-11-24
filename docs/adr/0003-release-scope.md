@@ -82,7 +82,7 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
 | ares-coupling | `Length`-typed displacement envelope, marshalling round trip | in scope, `M-typed-exchange`: test `a_traction_envelope_round_trips_through_export_and_advance` |
 | ares-coupling | Interface stress diagnostic envelope | in scope, `M-typed-exchange`: example `typed_exchange` checks it against a closed-form stress computed without the solve |
 | ares-coupling | Two-way coupling, ALE, non-conforming transfer, fluid traction extraction | non-goal (ADR 0059) |
-| workspace | Book, eleven chapters; crate READMEs | book delivered; `mdbook test` and the README build are 1.0 standing conditions (`ARES-CRATE-README-DOCS`) |
+| workspace | Book, eleven chapters; crate READMEs | book delivered; `mdbook test` and the README build are 1.0 standing conditions |
 | workspace | Publication of `ares-solid`, then `ares-operator` | 1.0 standing condition (`cargo publish --dry-run`, ADR 0001:82-83); the release itself needs release authority |
 | workspace | Publication of `ares-coupling` | non-goal for 1.0: it depends on `harmonia` (`publish = false`), whose graduation the ADR 0001 revision of 2026-09-04 places outside this repository (`gap_audit.md`) |
 | workspace | Dynamics, finite deformation, plasticity, viscoelasticity, contact, fracture, fatigue, anisotropy, composites, thermal expansion, buckling | non-goal (later phases, each with its own charter) |
@@ -112,8 +112,8 @@ runs therefore wait on the providers `ARES-PACKAGE-CLOSURE` names.
 
 ## Alternatives rejected
 
-- **1.0 at the current surface.** The crate README would still claim principal
-  stresses, and nothing would show a path through Gaia or a device.
+- **1.0 at the current surface.** The crate README would still list principal
+  stresses as not implemented, and nothing would show a path through Gaia or a device.
 - **Device solve as its own later milestone.** It leaves the largest risk
   second and the first milestone short of a named seam.
 - **Device-resident element kernels instead of CSR.** That puts per-backend
