@@ -103,16 +103,6 @@ Evidence below was read at `basis:` unless stated otherwise.
 - Acceptance: `cargo nextest run --locked --no-tests=fail -p ares-coupling --test coupling -E 'test(=a_triangle_interface_on_a_tetrahedron_exchanges_exactly)'` fails at basis (no such test) and passes after, asserting with `assert_eq!`: `input_dimension` 3 and `output_dimension` 9; `read_traction` of [1, 2, 3] gives `TractionFacet::new([0, 1, 2], [1, 2, 3])`; `write_displacement` of the state [0,0,9, 3,0,0, 0,6,0, 9,9,9] gives [0,6,0, 0,0,9, 3,0,0] (nodes 2, 0, 1); `interface_work` of that traction and state is 7 (facet-node sums (3, 6, 9), terms `t * sum * measure / D`: 0.5, 2, 4.5), exact in both scalars, and distinct nonzero sums make a dropped or swapped component change it.
 - Next step: write the test beside `a_point_interface_on_a_bar_exchanges_exactly`. Links: [M-vessel-wall](#M-vessel-wall).
 
-<a id="ARES-ADR-0004-SCOPE-DOCS"></a>
-## ARES-ADR-0004-SCOPE-DOCS — Retitle ADR 0004 to its scope and correct ADR 0003's manifest version [patch] — todo
-- priority: verification; milestone: M-vessel-wall; needs: none; basis: 39f515cf5362267415e930fe0a0abb505645db8d
-- scope: `docs/adr/0004-facet-dimension-at-least-one.md`, `docs/adr/README.md`, `docs/adr/0003-release-scope.md`, and the inbound links to the ADR 0004 file name (`CHANGELOG.md` twice, `backlog.md`, `docs/book/assembly.md`) only if the file is renamed.
-- Defects (read at basis; ares#102 review F7): the ADR 0004 heading and index title, "A traction facet needs a spatial dimension of at least one", no longer cover the decision, which since PR #102 also covers `SimplexMesh` and `StructuralInterface` (:96-144). `docs/adr/0003-release-scope.md:11` says "the manifest is at 0.3.0"; `Cargo.toml:13` is 0.3.1.
-- Outcome: the title names the contract all four types share (`D >= 1`), the index is regenerated, and the ADR 0003 sentence states 0.3.1; ADR 0003 stays Proposed and at or under 150 lines.
-- Acceptance: `git grep -n -e 'A traction facet needs a spatial dimension' -e 'manifest is at 0.3.0' -- docs` prints three lines at basis and none after; `python scripts/adr-index.py check --strict --directory docs/adr` from an atlas checkout passes.
-- Gap for the lead (ares#102 review F8): `CHANGELOG.md:3` lists `## [0.3.1] - Unreleased` above `## [0.3.0] - Unreleased` (`:11`), newest first with no tag, so the [major] entries sit under 0.3.0 beneath a [patch] release (`Cargo.toml:13`). The order is conventional; whether those entries stay under 0.3.0 once 0.3.1 exists is a release-scope decision (ADR 0003, versioning), not made here.
-- Next step: retitle, regenerate with `adr-index.py generate`, correct the ADR 0003 sentence. Links: [ADR 0004](docs/adr/0004-facet-dimension-at-least-one.md), [ADR 0003](docs/adr/0003-release-scope.md), [M-vessel-wall](#M-vessel-wall).
-
 <a id="ARES-SPIKE-HOSTDEVICE-CSR"></a>
 ## ARES-SPIKE-HOSTDEVICE-CSR — Spike: does CsrOperator compose with HostDevice at f32 and f64? [patch] — todo
 - priority: feature; milestone: M-vessel-wall; needs: none; basis: 754d6c36f96c1625a93efcd61885c8b9220b0229
