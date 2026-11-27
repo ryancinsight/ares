@@ -8,7 +8,7 @@
 
 ## Context
 
-Ares has no release tag; the manifest is at 0.3.0. Sources: atlas ADRs 0055,
+Ares has no release tag; the manifest is at 0.3.1. Sources: atlas ADRs 0055,
 0057 (Accepted) and 0059 (Proposed), ADRs 0001 and 0002, the READMEs, the book
 and the board. ADR 0057 fixes the solve as "backend-neutral over Leto and
 Hephaestus" (0057:53-54), the exchange as "typed physical fields per ADR 0050"
