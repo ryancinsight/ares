@@ -3,6 +3,12 @@
 use super::support::{moduli, square_patch};
 use ares::SimplexMesh;
 
+/// The oracle index as a float, through the checked conversion the cast rule
+/// requires instead of a bare `as`.
+fn scaled(index: usize) -> f64 {
+    f64::from(u32::try_from(index).expect("oracle index fits u32"))
+}
+
 // ---------------------------------------------------------------------------
 // Operator properties the solver depends on
 // ---------------------------------------------------------------------------
@@ -16,8 +22,8 @@ fn the_assembled_operator_is_symmetric() {
     let mesh = SimplexMesh::try_new(&nodes, &cells).expect("valid patch");
     let m = moduli::<f64>(200e9, 0.3);
 
-    let u: [f64; 10] = core::array::from_fn(|i| 1e-4 * ((i * 7 % 5) as f64 - 2.0));
-    let v: [f64; 10] = core::array::from_fn(|i| 1e-4 * ((i * 3 % 7) as f64 - 3.0));
+    let u: [f64; 10] = core::array::from_fn(|i| 1e-4 * (scaled(i * 7 % 5) - 2.0));
+    let v: [f64; 10] = core::array::from_fn(|i| 1e-4 * (scaled(i * 3 % 7) - 3.0));
     let mut ku = [0.0_f64; 10];
     let mut kv = [0.0_f64; 10];
     mesh.internal_forces(&m, &u, &mut ku).expect("well-shaped");

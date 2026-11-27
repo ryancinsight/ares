@@ -79,7 +79,7 @@ dependencies = [
  "athena-core",
  "athena-leto",
  "eunomia",
- "harmonia",
+ "harmonia-coupling",
  "leto",
  "leto-ops",
  "proteus-mat",
@@ -504,9 +504,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1033caf0b349c518623b5396bfb2cf0bddf44f0306d543a250e5743297aafd10"
 
 [[package]]
-name = "harmonia"
+name = "harmonia-coupling"
 version = "0.1.4"
-source = "git+https://github.com/ryancinsight/harmonia?rev=e8d25ac563b5a682ebb912430e26bb67a9ece62f#e8d25ac563b5a682ebb912430e26bb67a9ece62f"
+source = "git+https://github.com/ryancinsight/harmonia?rev=0e2f7f05c359d2fd1404a53a0718e97717b20dee#0e2f7f05c359d2fd1404a53a0718e97717b20dee"
 dependencies = [
  "aequitas",
  "athena-core",
