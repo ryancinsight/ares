@@ -107,12 +107,12 @@ const SOLVE_BUDGET: usize = 20_000;
 
 /// Tolerance of the estimate solve in [`couple`], relative to the load norm.
 ///
-/// The square root of `f64::EPSILON = 2^-52`, which is exactly `2^-26`: the
-/// geometric mean of `1` and the epsilon, which bound the residuals a solve
-/// can meet relative to the load. The value is a choice, not a derived
-/// bound: the estimate only locates `u` for the residual floor, and nothing
-/// in this suite relates the tolerance to the error of that location.
-/// `sqrt` is not a `const fn`, so the literal is `2^-26` and
+/// The square root of `f64::EPSILON = 2^-52`, which is exactly `2^-26` and
+/// the geometric mean of `1` and the epsilon. The value is a choice, not a
+/// derived bound: the estimate only locates `u` for the residual floor, and
+/// the tolerance is not derived from any bound on the error of that location.
+/// `f64::sqrt` is not a `const fn` on the pinned 1.97.0 toolchain, so the
+/// literal is `2^-26` and
 /// `the_estimate_tolerance_is_the_square_root_of_the_epsilon` pins it.
 const ESTIMATE_TOLERANCE: f64 = 1.490_116_119_384_765_6e-8;
 

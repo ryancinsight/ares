@@ -24,7 +24,7 @@ use ares::{
 use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity, KrylovBackend, LinearOperator};
 use athena_leto::LetoBackend;
-use eunomia::RealField;
+use eunomia::{FloatElement, NumericElement, RealField};
 use leto::Array1;
 use proteus::IsotropicModuli;
 
@@ -251,9 +251,9 @@ fn held_square<'a>(
 /// `gamma_k` for `k = N + 2 D + 9 + 2 = 18`: nodes 0 and 2 of the square lie
 /// in both cells, so two cells meet at the busiest node.
 fn gamma_18<T: RealField>() -> T {
-    let one = T::from_f64(1.0);
-    let unit_roundoff = T::EPSILON / T::from_f64(2.0);
-    let terms = T::from_f64(18.0);
+    let one = <T as NumericElement>::ONE;
+    let unit_roundoff = T::EPSILON / (one + one);
+    let terms = <T as FloatElement>::from_count(18);
     terms * unit_roundoff / (one - terms * unit_roundoff)
 }
 
@@ -339,12 +339,14 @@ fn the_residual_floor_adds_the_reference_and_neighbour_motion() {
 /// `tr|eps| = 1`, `|sigma| = [[3,1/2],[1/2,1]]`, node forces `(1/4,1/2)`,
 /// `(3/2,1/4)`, `(7/4,3/4)`. The rows are node 0: `(7/4,5/4)`, node 1:
 /// `(9/4,5/4)`, node 2: `(9/4,3/4)`, so `||A|u||^2 = 135/8`, and the squared
-/// reading of the term gives `235/32`. Every intermediate is a short dyadic
-/// rational, so the chain is exact at `f32` and `f64`.
+/// reading of the term gives `235/32`. `E = 5/2` and `nu = 1/4` give
+/// `mu = lambda = 1`, and every intermediate is a short dyadic rational, so
+/// the chain is exact at `f32` and `f64`; the exact comparison passes at both.
 fn assert_the_floor_adds_a_half_magnitude_reference_motion<T: RealField + core::fmt::Debug>() {
-    let zero = T::from_f64(0.0);
-    let one = T::from_f64(1.0);
-    let half = T::from_f64(0.5);
+    let zero = <T as NumericElement>::ZERO;
+    let one = <T as NumericElement>::ONE;
+    let two = one + one;
+    let half = one / two;
     let nodes = [[zero, zero], [one, zero], [one, one], [zero, one]];
     let cells = [[0, 1, 2], [0, 2, 3]];
     let held = [
@@ -359,10 +361,10 @@ fn assert_the_floor_adds_a_half_magnitude_reference_motion<T: RealField + core::
     displacement[2] = half;
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
-    let two = T::from_f64(2.0);
+    let squared_norm = <T as FloatElement>::from_count(135) / <T as FloatElement>::from_count(8);
     assert_eq!(
         floor,
-        two * gamma_18::<T>() * T::from_f64(16.875).sqrt(),
+        two * gamma_18::<T>() * squared_norm.sqrt(),
         "at {}",
         core::any::type_name::<T>()
     );
