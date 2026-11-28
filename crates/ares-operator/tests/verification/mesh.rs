@@ -128,11 +128,14 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
     let zero = <T as eunomia::NumericElement>::ZERO;
 
     // The estimate only locates `u` for the residual floor below, so its
-    // tolerance carries no accuracy claim. A floor sized from an estimate that
-    // is too far off makes the second solve fail loudly; it cannot pass one
-    // falsely.
-    let estimate =
-        ConvergencePolicy::<T>::new(zero, T::EPSILON.sqrt(), SOLVE_BUDGET).expect("valid policy");
+    // tolerance carries no accuracy claim. The floor is nondecreasing in
+    // every entry of `|u|` and scales with a uniform factor on them, so
+    // entries that are all too small lower the threshold, and the second
+    // solve then may not reach it, in which case `converge` panics; entries
+    // that are all too large raise the threshold. The tolerance is not
+    // derived from any bound on the error of `|u|`.
+    let estimate = ConvergencePolicy::<T>::new(zero, estimate_tolerance::<T>(), SOLVE_BUDGET)
+        .expect("valid policy");
     converge(
         &operator,
         &right_hand_side,
@@ -153,6 +156,16 @@ pub fn solve<T: RealScalar + RealField + core::fmt::LowerExp>(
         policy,
     );
     (solution.as_slice().expect("contiguous").to_vec(), threshold)
+}
+
+/// Tolerance of the estimate solve in [`solve`], relative to the load norm.
+///
+/// The square root of the machine epsilon, which is the geometric mean of `1`
+/// and the epsilon. The value is a choice, not a derived bound: the estimate
+/// only locates `u` for the residual floor, and the tolerance is not derived
+/// from any bound on the error of that location.
+fn estimate_tolerance<T: RealField>() -> T {
+    T::EPSILON.sqrt()
 }
 
 /// Iteration budget of one verification solve.
