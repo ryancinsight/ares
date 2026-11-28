@@ -26,8 +26,10 @@ athena-core = { version = "0.3.2", git = "https://github.com/ryancinsight/athena
 athena-leto = { version = "0.3.2", git = "https://github.com/ryancinsight/athena", default-features = false }
 eunomia = { version = "0.12.0", git = "https://github.com/ryancinsight/eunomia", default-features = false }
 harmonia = { version = "0.1.0", git = "https://github.com/ryancinsight/harmonia", default-features = false }
-leto = { version = ">=0.47.0, <0.51.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
-leto-ops = { version = ">=0.47.0, <0.51.0", git = "https://github.com/ryancinsight/leto", features = ["std"] }
+# Keep Ares on the same local Leto identity as the rest of the Atlas graph so
+# provider and solver crates see the same numeric contract.
+leto = { version = "0.50.0", path = "../leto/crates/leto", features = ["std"] }
+leto-ops = { version = "0.50.0", path = "../leto/crates/leto-ops", features = ["std"] }
 proteus = { package = "proteus-mat", version = "0.1.0", git = "https://github.com/ryancinsight/proteus", default-features = false }
 proptest = "1.11.0"
 
@@ -76,3 +78,14 @@ debug = false
 [profile.release]
 debug = false
 strip = "symbols"
+
+# Single Atlas Leto source identity: redirect every git-sourced
+# `leto`/`leto-ops` edge to the local checkout so the graph carries one
+# crate ID standalone, matching the in-tree overlay (cf. CFDrs).
+[patch."https://github.com/ryancinsight/leto"]
+leto = { path = "../leto/crates/leto" }
+leto-ops = { path = "../leto/crates/leto-ops" }
+
+[patch."https://github.com/ryancinsight/leto.git"]
+leto = { path = "../leto/crates/leto" }
+leto-ops = { path = "../leto/crates/leto-ops" }
