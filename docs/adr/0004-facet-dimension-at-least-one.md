@@ -8,9 +8,11 @@
 - **Revision:** 2026-11-24, PR #102 (`ARES-ASSEMBLY-DIM-ZERO`): the contract
   extends to `SimplexMesh` and `StructuralInterface`; the facet decision is
   unchanged.
-- **Revision:** 2026-11-27, `ARES-ADR-0004-SCOPE-DOCS`: the title names the
-  contract of `TractionFacet`, `TractionBoundary`, `SimplexMesh` and
-  `StructuralInterface`; the decision is unchanged.
+- **Revision:** 2026-11-27, 5643cd0ea13d (PR #106): the title named only a
+  traction facet; it now reads "Traction, mesh and interface types need a
+  spatial dimension of at least one", which spans `TractionFacet`,
+  `TractionBoundary`, `SimplexMesh` and `StructuralInterface`, the types the
+  contract has covered since PR #102. The decision is unchanged.
 - **Correction:** the `BREAKING CHANGE` footer of the commit titled
   `fix(ares): Reject a zero facet dimension` says `TractionFacet` no longer
   compiles at `D = 0` and that no `D = 0` call ever completed work. Both are
