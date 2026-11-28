@@ -24,7 +24,7 @@ use ares::{
 use ares_operator::ConstrainedStiffness;
 use athena_core::{Cg, CgWorkspace, ConvergencePolicy, Identity, KrylovBackend, LinearOperator};
 use athena_leto::LetoBackend;
-use eunomia::RealField;
+use eunomia::{FloatElement, NumericElement, RealField};
 use leto::Array1;
 use proteus::IsotropicModuli;
 
@@ -250,9 +250,11 @@ fn held_square<'a>(
 
 /// `gamma_k` for `k = N + 2 D + 9 + 2 = 18`: nodes 0 and 2 of the square lie
 /// in both cells, so two cells meet at the busiest node.
-fn gamma_18() -> f64 {
-    let unit_roundoff = f64::EPSILON / 2.0;
-    18.0 * unit_roundoff / (1.0 - 18.0 * unit_roundoff)
+fn gamma_18<T: RealField>() -> T {
+    let one = <T as NumericElement>::ONE;
+    let unit_roundoff = T::EPSILON / (one + one);
+    let terms = <T as FloatElement>::from_count(18);
+    terms * unit_roundoff / (one - terms * unit_roundoff)
 }
 
 #[test]
@@ -275,7 +277,7 @@ fn the_residual_floor_is_the_hand_evaluated_absolute_chain() {
     let displacement = [-2.0, 1.0, 3.0, -1.0, -1.0, 2.0, 2.0, -4.0];
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
-    assert_eq!(floor, 2.0 * gamma_18() * 234.5_f64.sqrt());
+    assert_eq!(floor, 2.0 * gamma_18::<f64>() * 234.5_f64.sqrt());
 }
 
 #[test]
@@ -297,7 +299,7 @@ fn the_residual_floor_counts_a_free_reference_node() {
     let displacement = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
-    assert_eq!(floor, 2.0 * gamma_18() * 33.5_f64.sqrt());
+    assert_eq!(floor, 2.0 * gamma_18::<f64>() * 33.5_f64.sqrt());
 }
 
 #[test]
@@ -320,7 +322,58 @@ fn the_residual_floor_adds_the_reference_and_neighbour_motion() {
     let displacement = [1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
-    assert_eq!(floor, 2.0 * gamma_18() * 67.5_f64.sqrt());
+    assert_eq!(floor, 2.0 * gamma_18::<f64>() * 67.5_f64.sqrt());
+}
+
+/// The floor of the fixture square's operator, in the scalar `T`, with only
+/// node 3 held and nodes 0 and 1 each moved by `(1/2, 0)`.
+///
+/// The reference node 0 and its neighbour node 1 both move, by a magnitude
+/// other than 1, so in cell `[0,1,2]` the term `|u_1| + |u_0|` is `1` where
+/// `|u_1| + |u_0|^2` gives `3/4`. A magnitude of 1 hides that square, as
+/// `1 * 1 = 1`, and so does a magnitude of 0. Halving the magnitude of
+/// `the_residual_floor_adds_the_reference_and_neighbour_motion` scales
+/// `||A|u||^2 = 67.5` by `1/4`: cell `[0,1,2]` has `|G| = [[1,3/2],[0,0]]`,
+/// `tr|eps| = 1`, `|sigma| = [[3,3/2],[3/2,1]]`, node forces `(3/2,3/4)`,
+/// `(9/4,5/4)`, `(3/4,1/2)`; cell `[0,2,3]` has `|G| = [[1,1/2],[0,0]]`,
+/// `tr|eps| = 1`, `|sigma| = [[3,1/2],[1/2,1]]`, node forces `(1/4,1/2)`,
+/// `(3/2,1/4)`, `(7/4,3/4)`. The rows are node 0: `(7/4,5/4)`, node 1:
+/// `(9/4,5/4)`, node 2: `(9/4,3/4)`, so `||A|u||^2 = 135/8`, and the squared
+/// reading of the term gives `235/32`. `E = 5/2` and `nu = 1/4` give
+/// `mu = lambda = 1`, and every intermediate is a short dyadic rational, so
+/// the chain is exact at `f32` and `f64`; the exact comparison passes at both.
+fn assert_the_floor_adds_a_half_magnitude_reference_motion<T: RealField + core::fmt::Debug>() {
+    let zero = <T as NumericElement>::ZERO;
+    let one = <T as NumericElement>::ONE;
+    let two = one + one;
+    let half = one / two;
+    let nodes = [[zero, zero], [one, zero], [one, one], [zero, one]];
+    let cells = [[0, 1, 2], [0, 2, 3]];
+    let held = [
+        PrescribedDisplacement::new(3, 0, zero),
+        PrescribedDisplacement::new(3, 1, zero),
+    ];
+    let mesh = SimplexMesh::try_new(&nodes, &cells).expect("valid mesh");
+    let conditions = DirichletConditions::try_new(&held, mesh.node_count()).expect("valid");
+    let operator = ConstrainedStiffness::new(mesh, moduli::<T>(2.5, 0.25), conditions);
+    let mut displacement = [zero; 8];
+    displacement[0] = half;
+    displacement[2] = half;
+
+    let floor = operator.residual_floor(&displacement).expect("well-shaped");
+    let squared_norm = <T as FloatElement>::from_count(135) / <T as FloatElement>::from_count(8);
+    assert_eq!(
+        floor,
+        two * gamma_18::<T>() * squared_norm.sqrt(),
+        "at {}",
+        core::any::type_name::<T>()
+    );
+}
+
+#[test]
+fn the_residual_floor_adds_a_reference_motion_of_non_unit_magnitude() {
+    assert_the_floor_adds_a_half_magnitude_reference_motion::<f32>();
+    assert_the_floor_adds_a_half_magnitude_reference_motion::<f64>();
 }
 
 #[test]
@@ -337,7 +390,7 @@ fn the_residual_floor_takes_the_magnitude_of_a_negative_lambda() {
     let displacement = [-2.0, 1.0, 3.0, -1.0, -1.0, 2.0, 2.0, -4.0];
 
     let floor = operator.residual_floor(&displacement).expect("well-shaped");
-    assert_eq!(floor, 2.0 * gamma_18() * 167.3125_f64.sqrt());
+    assert_eq!(floor, 2.0 * gamma_18::<f64>() * 167.3125_f64.sqrt());
 }
 
 #[test]

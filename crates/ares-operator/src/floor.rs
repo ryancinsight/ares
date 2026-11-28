@@ -27,9 +27,14 @@ impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D
     /// its exact value by at most `gamma_k = k u / (1 - k u)` times the same
     /// expression with every input and coefficient replaced by its absolute
     /// value and every `-` by `+`, where `k` is the largest number of
-    /// operations on one path from an input to the result. The source is
-    /// recalled, not verified: Higham, *Accuracy and Stability of Numerical
-    /// Algorithms*, 2nd ed., chapter 3.
+    /// operations on one path from an input to the result. That reading holds
+    /// when each product has one coefficient operand; a product of two
+    /// computed values adds their operation counts instead. Every product in
+    /// this kernel is a computed value times a coefficient: a shape gradient
+    /// (in the gradient and in the force), the exact half of the
+    /// symmetrisation, `2 mu` or `lambda` (in the stress), or the measure (in
+    /// the force). The source is recalled, not verified: Higham, *Accuracy
+    /// and Stability of Numerical Algorithms*, 2nd ed., chapter 3.
     ///
     /// Counting the kernel's longest path per output entry:
     ///
@@ -55,10 +60,16 @@ impl<T: RealField, const D: usize, const N: usize> ConstrainedStiffness<'_, T, D
     /// The bound is evaluated at `displacement`, not at the solution the
     /// solve will reach. A caller that sizes it from an earlier, looser solve
     /// gets a threshold that can be too tight, which makes the solve fail to
-    /// converge. It never accepts a residual above the evaluation floor at
-    /// the displacement it was given. The count mirrors `ares`'s
-    /// `stiffness_action`, so it must change when that kernel's operation
-    /// order changes.
+    /// converge.
+    ///
+    /// The bound is on the rounding of evaluating the residual, and only
+    /// when `displacement` solves `A u = b`. At any other displacement `d`,
+    /// `|b| <= |A||d| + |b - A d|` componentwise, so within the model above
+    /// the evaluation error is at most `2 gamma_k ||A||d||_2 +
+    /// gamma_k ||b - A d||_2`: the floor at `d`, which this returns, can be
+    /// exceeded by `gamma_k ||b - A d||_2`. It bounds no other error of the
+    /// solution. The count mirrors `ares`'s `stiffness_action`, so it must
+    /// change when that kernel's operation order changes.
     ///
     /// The derivation assumes no underflow or overflow and `k u < 1`. The
     /// floor is itself evaluated in `T`, so its value carries a relative

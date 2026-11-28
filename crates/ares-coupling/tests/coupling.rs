@@ -105,10 +105,21 @@ impl Fixture {
 /// unknowns, so it bounds a stalled solve rather than a converging one.
 const SOLVE_BUDGET: usize = 20_000;
 
+/// Tolerance of the estimate solve in [`couple`], relative to the load norm.
+///
+/// The square root of `f64::EPSILON = 2^-52`, which is exactly `2^-26` and
+/// the geometric mean of `1` and the epsilon. The value is a choice, not a
+/// derived bound: the estimate only locates `u` for the residual floor, and
+/// the tolerance is not derived from any bound on the error of that location.
+/// `f64::sqrt` is not a `const fn` on the pinned 1.97.0 toolchain, so the
+/// literal is `2^-26` and
+/// `the_estimate_tolerance_is_the_square_root_of_the_epsilon` pins it.
+const ESTIMATE_TOLERANCE: f64 = 1.490_116_119_384_765_6e-8;
+
 /// Run one coupling step and return `(partition, state, traction)`.
 ///
 /// Solves twice. The first solve only locates `u` for
-/// [`ConstrainedStiffness::residual_floor`], so its `sqrt(EPSILON)` tolerance
+/// [`ConstrainedStiffness::residual_floor`], so its [`ESTIMATE_TOLERANCE`]
 /// carries no accuracy claim; the second continues from it to that floor.
 fn couple(
     fixture: &Fixture,
@@ -129,7 +140,7 @@ fn couple(
     };
 
     let mut estimate = partition(
-        ConvergencePolicy::new(0.0, f64::EPSILON.sqrt(), SOLVE_BUDGET).expect("valid policy"),
+        ConvergencePolicy::new(0.0, ESTIMATE_TOLERANCE, SOLVE_BUDGET).expect("valid policy"),
     );
     let mut traction = vec![0.0_f64; estimate.input_dimension()];
     for slot in traction.as_chunks_mut::<2>().0 {
@@ -147,6 +158,14 @@ fn couple(
         .solve_for_traction(&mut state, &traction)
         .expect("the coupling step solves");
     (coupled, state, traction)
+}
+
+#[test]
+fn the_estimate_tolerance_is_the_square_root_of_the_epsilon() {
+    // `2^-26` squared is `2^-52` exactly. A neighbouring double squares to a
+    // value at least one ulp from the epsilon, so equality holds for `2^-26`
+    // alone.
+    assert_eq!(ESTIMATE_TOLERANCE * ESTIMATE_TOLERANCE, f64::EPSILON);
 }
 
 #[test]
